@@ -124,7 +124,7 @@ const specialKeySymbols: Record<string, string> = {
 // Default labeling
 function getLabel(k: string) {
   if (specialKeySymbols[k]) {
-    return { bottom: specialKeySymbols[k] };
+    return { bottom: specialKeySymbols[k], top: "" };
   }
   return keyLabels[k] ?? { bottom: k === "Space" ? "Space" : k.toUpperCase() };
 }

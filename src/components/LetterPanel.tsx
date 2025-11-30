@@ -1,5 +1,5 @@
 import React from "react";
-import type { AppConfig } from "../types";
+import type { AppConfig } from "../utils/types";
 import lettersConfig from "../config/letters.json";
 
 interface LetterPanelProps {

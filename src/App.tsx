@@ -13,6 +13,7 @@ import CoursePanel from "./components/CoursePanel";
 import TypingArea from "./components/TypingArea";
 import StatusBar from "./components/StatusBar";
 import ResultOverlay from "./components/ResultOverlay";
+import KeyboardLayout from "./components/KeyboardLayout";
 
 import type {
   AppState,
@@ -23,33 +24,37 @@ import type {
 } from "./utils/types";
 import { calculateTypingMetrics } from "./utils/metrics";
 import type { TypingMetrics } from "./utils/metrics";
+import { getFingerInfoForChar } from "./utils/keyMapping";
 
-const STORAGE_KEY = "typing_tutor_v1_step3";
+const STORAGE_KEY = "typing_tutor_v1";
 
 const LETTERS = (lettersConfig as { letters: string[] }).letters;
 const COMMON_WORDS = (commonWordsConfig as { words: string[] }).words;
-const COURSE_LESSONS = (courseLessonsConfig as { lessons: CourseLesson[] })
-  .lessons;
+const COURSE_LESSONS = courseLessonsConfig as { lessons: CourseLesson[] };
+
+// unlock rules for course
+const WPM_UNLOCK = 25;
+const ACC_UNLOCK = 90;
 
 const defaultConfig: AppConfig = {
   mode: "letters",
   letters: {
     selectedLetters: null,
     lenOption: "50",
-    customLength: 60,
+    customLength: 20,
   },
   paragraph: {
     text: "",
   },
   common: {
     lenOption: "30",
-    customLength: 50,
+    customLength: 20,
   },
   course: {
     lessonId: null,
   },
   ui: {
-    showKeyboard: true, // not used in this step, but keep for compatibility
+    showKeyboard: true,
     allowBackspace: true,
   },
 };
@@ -71,7 +76,6 @@ function loadInitialState(): AppState {
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as AppState;
 
-    // patch ui for older saved states
     if (!parsed.config.ui) {
       parsed.config.ui = { showKeyboard: true, allowBackspace: true };
     } else if (parsed.config.ui.allowBackspace === undefined) {
@@ -124,16 +128,23 @@ const App: React.FC = () => {
     "Configure options above and click Generate text / Start lesson to begin.",
   );
   const [statusError, setStatusError] = useState<boolean>(false);
+
+  const hiddenInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const hasRecordedResultRef = useRef<boolean>(false);
+
   const [testStartTime, setTestStartTime] = useState<number | null>(null);
   const [resultStats, setResultStats] = useState<TypingMetrics | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
 
-  const hiddenInputRef = useRef<HTMLTextAreaElement | null>(null);
-
   const { config, progress } = state;
   const currentMode = config.mode;
+  const modeProgress = progress.modes[currentMode];
+  const nextChar =
+    currentText && stage !== "config"
+      ? (currentText[typedText.length] ?? null)
+      : null;
+  const fingerInfo = getFingerInfoForChar(nextChar || undefined);
 
-  // persist simple state
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -147,7 +158,7 @@ const App: React.FC = () => {
       ? config.letters.selectedLetters
       : LETTERS;
 
-  const lessons = COURSE_LESSONS;
+  const lessons = COURSE_LESSONS.lessons;
   const resolvedLesson =
     config.course.lessonId &&
       lessons.find((l) => l.id === config.course.lessonId)
@@ -159,6 +170,7 @@ const App: React.FC = () => {
   function updateConfig(updater: (cfg: AppConfig) => AppConfig) {
     setState((prev) => ({ ...prev, config: updater(prev.config) }));
   }
+
   function updateProgress(updater: (p: AppProgress) => AppProgress) {
     setState((prev) => ({ ...prev, progress: updater(prev.progress) }));
   }
@@ -251,7 +263,7 @@ const App: React.FC = () => {
     return Number(lenOption) || 50;
   }
 
-  // test lifecycle (no metrics in this step)
+  // test lifecycle
   function prepareTest() {
     setStatusError(false);
 
@@ -283,18 +295,38 @@ const App: React.FC = () => {
       }
     } else if (currentMode === "course") {
       const lesson = currentLesson;
-      const idx = Math.floor(Math.random() * lesson.texts.length);
-      text = lesson.texts[idx];
+
+      // locking: require previous lesson to meet threshold
+      const idx = COURSE_LESSONS.lessons.findIndex((l) => l.id === lesson.id);
+      if (idx > 0) {
+        const prevLesson = COURSE_LESSONS.lessons[idx - 1];
+        const prevProg = progress.lessons[prevLesson.id];
+        const unlocked =
+          prevProg &&
+          prevProg.bestWpm >= WPM_UNLOCK &&
+          prevProg.bestAcc >= ACC_UNLOCK;
+
+        if (!unlocked) {
+          setStatusMsg(
+            `Lesson locked. Complete “${prevLesson.title}” with at least ${WPM_UNLOCK} WPM and ${ACC_UNLOCK}% accuracy to unlock this.`,
+          );
+          setStatusError(true);
+          return;
+        }
+      }
+
+      const tIndex = Math.floor(Math.random() * lesson.texts.length);
+      text = lesson.texts[tIndex];
     }
 
-    text.trim();
     setCurrentText(text);
     setTypedText("");
-    setTestStartTime(null);
-    setResultStats(null);
     setStage("prestart");
     setStatusMsg("Press any key to begin the test.");
+    setTestStartTime(null);
+    setResultStats(null);
     setShowResult(false);
+    hasRecordedResultRef.current = false;
     document.body.classList.add("test-active");
   }
 
@@ -309,16 +341,52 @@ const App: React.FC = () => {
     }
   }, [stage]);
 
-  function finishTest(typed: string) {
+  function finishTest(inputText: string) {
     if (stage !== "running") return;
+    if (hasRecordedResultRef.current) {
+      return;
+    }
+    hasRecordedResultRef.current = true;
 
     const endTime = Date.now();
     const start = testStartTime ?? endTime;
     const durationMs = endTime - start;
 
-    const stats = calculateTypingMetrics(currentText, typed, durationMs);
+    const stats = calculateTypingMetrics(currentText, inputText, durationMs);
     setResultStats(stats);
     setShowResult(true);
+
+    // update global progress (per mode + per lesson)
+    updateProgress((prev) => {
+      const modes = { ...prev.modes };
+      const lessonsProg = { ...prev.lessons };
+
+      // per-mode stats
+      const mm = modes[currentMode] || { runs: 0, bestWpm: 0, bestAcc: 0 };
+      mm.runs += 1;
+      if (stats.wpm > mm.bestWpm) mm.bestWpm = stats.wpm;
+      if (stats.accuracy > mm.bestAcc) mm.bestAcc = stats.accuracy;
+      modes[currentMode] = mm;
+
+      // per-lesson stats only for course mode
+      if (currentMode === "course") {
+        const lesson = currentLesson;
+        const lp = lessonsProg[lesson.id] || {
+          runs: 0,
+          bestWpm: 0,
+          bestAcc: 0,
+          lastTime: null as string | null,
+        };
+        lp.runs += 1;
+        if (stats.wpm > lp.bestWpm) lp.bestWpm = stats.wpm;
+        if (stats.accuracy > lp.bestAcc) lp.bestAcc = stats.accuracy;
+        lp.lastTime = new Date().toISOString();
+        lessonsProg[lesson.id] = lp;
+      }
+
+      return { modes, lessons: lessonsProg };
+    });
+
     setStage("finished");
     setStatusMsg("Test completed. Press Esc to return to settings.");
   }
@@ -354,7 +422,7 @@ const App: React.FC = () => {
     document.body.classList.remove("test-active");
   }
 
-  // global keydown: Esc + start test on first key
+  // global keydown
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -384,7 +452,6 @@ const App: React.FC = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900 text-slate-50">
       <div className="w-full max-w-5xl px-4 py-6 relative">
-        {/* Config area */}
         {stage === "config" && (
           <>
             <ModeHeader
@@ -437,7 +504,7 @@ const App: React.FC = () => {
 
             {currentMode === "course" && (
               <CoursePanel
-                lessons={COURSE_LESSONS}
+                lessons={COURSE_LESSONS.lessons}
                 currentLesson={currentLesson}
                 lessonId={config.course.lessonId}
                 lessonProgressMap={progress.lessons}
@@ -449,7 +516,6 @@ const App: React.FC = () => {
           </>
         )}
 
-        {/* Typing area (prestart / running / finished) */}
         {stage !== "config" && currentText && (
           <TypingArea
             currentText={currentText}
@@ -461,17 +527,22 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Status bar always visible */}
         {stage !== "config" && (
           <div className="mt-3">
             <StatusBar message={statusMsg} isError={statusError} />
           </div>
         )}
 
+        {config.ui.showKeyboard && stage !== "config" && currentText && (
+          <KeyboardLayout fingerInfo={fingerInfo || undefined} />
+        )}
+
         <ResultOverlay
           show={showResult}
           stats={resultStats}
           onRepeat={prepareTest}
+          modeName={currentMode}
+          modeProgress={modeProgress}
         />
       </div>
     </div>

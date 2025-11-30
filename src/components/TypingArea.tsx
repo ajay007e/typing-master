@@ -5,7 +5,7 @@ interface TypingAreaProps {
   currentText: string;
   typedText: string;
   stage: Stage;
-  hiddenInputRef: React.RefObject<HTMLTextAreaElement>;
+  hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
   onHiddenInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onAreaClick: () => void;
 }

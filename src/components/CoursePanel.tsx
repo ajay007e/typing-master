@@ -56,7 +56,7 @@ const CoursePanel: React.FC<CoursePanelProps> = ({
       >
         {(() => {
           let lastCat: string | null = null;
-          const items: JSX.Element[] = [];
+          const items: React.ReactNode[] = [];
           lessons.forEach((lesson, idx) => {
             const unlocked = isLessonUnlocked(idx);
 
