@@ -1,0 +1,198 @@
+{
+    "അ": {
+        "key": "d",
+        "shift": true
+    },
+    "ആ": {
+        "key": "e",
+        "shift": true
+    },
+    "ഇ": {
+        "key": "f",
+        "shift": true
+    },
+    "ഈ": {
+        "key": "r",
+        "shift": true
+    },
+    "ഉ": {
+        "key": "g",
+        "shift": true
+    },
+    "ഊ": {
+        "key": "t",
+        "shift": true
+    },
+    "ഋ": {
+        "key": "=",
+        "shift": true
+    },
+    "എ": {
+        "key": "z",
+        "shift": true
+    },
+    "ഏ": {
+        "key": "s",
+        "shift": true
+    },
+    "ഐ": {
+        "key": "w",
+        "shift": true
+    },
+    "ഒ": {
+        "key": "`",
+        "shift": true
+    },
+    "ഓ": {
+        "key": "a",
+        "shift": true
+    },
+    "ഔ": {
+        "key": "q",
+        "shift": true
+    },
+    "ക": {
+        "key": "k",
+        "shift": false
+    },
+    "ഖ": {
+        "key": "k",
+        "shift": true
+    },
+    "ഗ": {
+        "key": "i",
+        "shift": false
+    },
+    "ഘ": {
+        "key": "i",
+        "shift": true
+    },
+    "ങ": {
+        "key": "u",
+        "shift": true
+    },
+    "ച": {
+        "key": ";",
+        "shift": false
+    },
+    "ഛ": {
+        "key": ";",
+        "shift": true
+    },
+    "ജ": {
+        "key": "p",
+        "shift": false
+    },
+    "ഝ": {
+        "key": "p",
+        "shift": true
+    },
+    "ഞ": {
+        "key": "]",
+        "shift": true
+    },
+    "ട": {
+        "key": "'",
+        "shift": false
+    },
+    "ഠ": {
+        "key": "'",
+        "shift": true
+    },
+    "ഡ": {
+        "key": "[",
+        "shift": false
+    },
+    "ഢ": {
+        "key": "[",
+        "shift": true
+    },
+    "ണ": {
+        "key": "c",
+        "shift": true
+    },
+    "ത": {
+        "key": "l",
+        "shift": false
+    },
+    "ഥ": {
+        "key": "l",
+        "shift": true
+    },
+    "ദ": {
+        "key": "o",
+        "shift": false
+    },
+    "ധ": {
+        "key": "o",
+        "shift": true
+    },
+    "ന": {
+        "key": "v",
+        "shift": false
+    },
+    "പ": {
+        "key": "h",
+        "shift": false
+    },
+    "ഫ": {
+        "key": "h",
+        "shift": true
+    },
+    "ബ": {
+        "key": "y",
+        "shift": false
+    },
+    "ഭ": {
+        "key": "y",
+        "shift": true
+    },
+    "മ": {
+        "key": "c",
+        "shift": false
+    },
+    "യ": {
+        "key": "/",
+        "shift": false
+    },
+    "ര": {
+        "key": "j",
+        "shift": false
+    },
+    "ല": {
+        "key": "n",
+        "shift": false
+    },
+    "വ": {
+        "key": "b",
+        "shift": false
+    },
+    "ശ": {
+        "key": "m",
+        "shift": true
+    },
+    "ഷ": {
+        "key": ",",
+        "shift": true
+    },
+    "സ": {
+        "key": "m",
+        "shift": false
+    },
+    "ഹ": {
+        "key": "u",
+        "shift": false
+    },
+    "ള": {
+        "key": "n",
+        "shift": true
+    },
+    "ഴ": {
+        "key": "b",
+        "shift": true
+    },
+    "റ": {
+        "key": "j",
+        "shift": true
+    }
+}
