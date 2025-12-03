@@ -1,4 +1,7 @@
-import { getGraphemes } from "./malayalam";
+import { getGraphemes, normalizeMalayalam } from "./malayalam";
+import { buildGraphemeInfos } from "./typingModel";
+import type { GraphemeInfo } from "./typingModel";
+import { PLACEHOLDER } from "./typingModel";
 
 export interface TypingMetrics {
     durationMs: number;
@@ -20,30 +23,51 @@ export function calculateTypingMetrics(
     const safeDurationMs = Math.max(durationMs, 1);
     const minutes = safeDurationMs / 60000;
 
-    const target = getGraphemes(targetText);
-    const typed = getGraphemes(typedText);
+    const graphemeInfos: GraphemeInfo[] = buildGraphemeInfos(targetText);
 
     let correct = 0;
     let incorrect = 0;
+    let missed = 0;
+    let extraGraphemes = 0;
 
-    const minLen = Math.min(target.length, typed.length);
+    let pos = 0;
+    for (let i = 0; i < graphemeInfos.length; i++) {
+        const info = graphemeInfos[i];
+        const strokesNeeded = info.keystrokes.length || 1;
 
-    for (let i = 0; i < minLen; i++) {
-        if (typed[i] === target[i]) correct++;
-        else incorrect++;
+        const end = Math.min(typedText.length, pos + strokesNeeded);
+        const chunk = typedText.slice(pos, end); // may include placeholders
+        pos += strokesNeeded;
+
+        const visible = chunk.split(PLACEHOLDER).join("");
+
+        const normTarget = normalizeMalayalam(info.grapheme);
+        const normTyped = normalizeMalayalam(visible);
+
+        if (!chunk.length) {
+            missed++;
+            continue;
+        }
+
+        if (normTyped === normTarget) {
+            correct++;
+        } else {
+            incorrect++;
+        }
     }
 
-    const extra = typed.length > target.length ? typed.length - target.length : 0;
+    if (pos < typedText.length) {
+        const leftover = typedText.slice(pos);
+        const extraVisible = leftover.split(PLACEHOLDER).join("");
+        extraGraphemes = getGraphemes(extraVisible).length;
+    }
 
-    const missed =
-        target.length > typed.length ? target.length - typed.length : 0;
+    const totalTypedGraphemes = correct + incorrect + extraGraphemes;
 
-    const totalTyped = typed.length;
-
-    const rawWpm = totalTyped / 5 / minutes;
+    const rawWpm = totalTypedGraphemes / 5 / minutes;
     const wpm = correct / 5 / minutes;
-
-    const accuracy = totalTyped > 0 ? (correct / totalTyped) * 100 : 0;
+    const accuracy =
+        totalTypedGraphemes > 0 ? (correct / totalTypedGraphemes) * 100 : 0;
 
     return {
         durationMs: safeDurationMs,
@@ -52,8 +76,8 @@ export function calculateTypingMetrics(
         accuracy,
         correct,
         incorrect,
-        extra,
+        extra: extraGraphemes,
         missed,
-        totalTyped,
+        totalTyped: totalTypedGraphemes,
     };
 }

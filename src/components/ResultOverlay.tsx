@@ -94,6 +94,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         </div>
 
         {/* Detailed breakdown */}
+        {/*
         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
           <div className="flex justify-between">
             <span>Incorrect</span>
@@ -112,7 +113,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
             <span>{stats.totalTyped}</span>
           </div>
         </div>
-
+        */}
         {/* Best in this mode */}
         {bestLine && (
           <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left text-[11px] text-slate-300">

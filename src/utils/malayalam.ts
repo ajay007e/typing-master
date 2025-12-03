@@ -19,3 +19,12 @@ export function getGraphemes(str: string): string[] {
     const normalized = normalizeMalayalam(str);
     return [...segmenter.segment(normalized)].map((s) => s.segment);
 }
+
+export function isMalayalamChar(ch: string): boolean {
+    if (!ch) return false;
+
+    const code = ch.codePointAt(0);
+    if (!code) return false;
+
+    return code >= 0x0d00 && code <= 0x0d7f;
+}

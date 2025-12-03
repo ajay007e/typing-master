@@ -24,7 +24,7 @@ import type {
 } from "./utils/types";
 import { calculateTypingMetrics } from "./utils/metrics";
 import type { TypingMetrics } from "./utils/metrics";
-import { getGraphemes } from "./utils/malayalam";
+import { isMalayalamChar } from "./utils/malayalam";
 import type { GraphemeInfo } from "./utils/typingModel";
 import { buildGraphemeInfos, getTypingProgress } from "./utils/typingModel";
 import { KEY_TO_CODE } from "./utils/keystrokes";
@@ -342,6 +342,7 @@ const App: React.FC = () => {
     setGraphemeInfos(buildGraphemeInfos(text));
     setStage("prestart");
     setStatusMsg("Press any key to begin the test.");
+    setStatusError(false);
     setTestStartTime(null);
     setResultStats(null);
     setShowResult(false);
@@ -360,6 +361,7 @@ const App: React.FC = () => {
     if (stage !== "prestart") return;
     setStage("running");
     setStatusMsg("Typing… press Esc to cancel.");
+    setStatusError(false);
     setTestStartTime(Date.now());
     if (hiddenInputRef.current) {
       hiddenInputRef.current.value = "";
@@ -414,10 +416,11 @@ const App: React.FC = () => {
 
     setStage("finished");
     setStatusMsg("Test completed. Press Esc to return to settings.");
+    setStatusError(false);
   }
 
   function handleHiddenKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (stage !== "running") return;
+    if (stage !== "prestart" && stage !== "running") return;
 
     if (e.key === "Escape") return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -466,7 +469,7 @@ const App: React.FC = () => {
   }
 
   function handleHiddenInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    if (stage !== "running") return;
+    if (stage !== "prestart" && stage !== "running") return;
 
     const native = e.nativeEvent as InputEvent;
     const inputType = native.inputType;
@@ -474,6 +477,7 @@ const App: React.FC = () => {
     if (inputType === "deleteContentBackward") {
       setTypedText((prev) => {
         if (!prev.length) return prev;
+
         let i = prev.length - 1;
         let placeholderCount = 0;
         while (i >= 0 && prev[i] === PLACEHOLDER) {
@@ -494,7 +498,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // ✏️ Normal insert / typing path
     let val = e.target.value.replace(/\r/g, "");
 
     if (lastStrokeInfoRef.current.wrong) {
@@ -508,19 +511,23 @@ const App: React.FC = () => {
       lastStrokeInfoRef.current = { wrong: false, fill: 0 };
     }
 
-    let visibleVal = val.split(PLACEHOLDER).join("");
+    const totalStrokesRequired = graphemeInfos.reduce(
+      (sum, g) => sum + (g.keystrokes.length || 1),
+      0,
+    );
 
-    const typed = getGraphemes(visibleVal);
-    const target = getGraphemes(currentText);
-
-    if (typed.length > target.length) {
-      visibleVal = typed.slice(0, target.length).join("");
+    if (val.length > totalStrokesRequired) {
+      val = val.slice(0, totalStrokesRequired);
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.value = val;
+      }
     }
 
     setTypedText(val);
+
     const { charIndex } = getTypingProgress(graphemeInfos, val.length);
 
-    if (typed.length === target.length && charIndex >= graphemeInfos.length) {
+    if (charIndex >= graphemeInfos.length) {
       finishTest(val);
     }
   }
@@ -565,6 +572,22 @@ const App: React.FC = () => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (stage === "prestart") {
+        const key = e.key;
+
+        const isLatinLetter = /^[A-Za-z]$/.test(key);
+        const isMalayalam = isMalayalamChar(key);
+
+        if (isLatinLetter && !isMalayalam) {
+          e.preventDefault();
+          setStatusMsg(
+            "Looks like your keyboard is not in Malayalam layout. Please switch to Malayalam (InScript) and try again.",
+          );
+          setStatusError(true);
+          return;
+        }
+
+        // For Malayalam letters / space / punctuation / Enter: start the test
+        // IMPORTANT: don't block the key; we want it to be typed as the first input
         startRunning();
       }
     };
@@ -635,8 +658,6 @@ const App: React.FC = () => {
                 onLessonChange={handleCourseLessonChange}
               />
             )}
-
-            <StatusBar message={statusMsg} isError={statusError} />
           </>
         )}
 
@@ -653,6 +674,8 @@ const App: React.FC = () => {
             currentCharIndex={currentCharIndex}
           />
         )}
+
+        <StatusBar message={statusMsg} isError={statusError} />
 
         {config.ui.showKeyboard && stage !== "config" && currentText && (
           <KeyboardLayout fingerInfo={fingerInfo || undefined} />
