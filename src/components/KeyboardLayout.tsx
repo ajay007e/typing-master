@@ -133,19 +133,15 @@ const KeyboardLayout: React.FC<KeyboardLayoutProps> = ({ fingerInfo }) => {
   const activeKey = fingerInfo?.baseKey;
   const needsShift = !!fingerInfo?.shift;
 
-  // Decide which Shift to highlight (opposite hand of the base key)
   let useLeftShift = false;
   let useRightShift = false;
 
   if (needsShift && activeKey) {
     if (LEFT_HAND_KEYS.has(activeKey)) {
-      // base key typed with left hand → use RIGHT shift
       useRightShift = true;
     } else if (RIGHT_HAND_KEYS.has(activeKey)) {
-      // base key typed with right hand → use LEFT shift
       useLeftShift = true;
     } else {
-      // unknown / space / something else → allow either
       useLeftShift = true;
       useRightShift = true;
     }
@@ -160,13 +156,16 @@ const KeyboardLayout: React.FC<KeyboardLayoutProps> = ({ fingerInfo }) => {
               const isShiftLeft = k === "ShiftLeft";
               const isShiftRight = k === "ShiftRight";
               const isSpace = k === "Space";
+              const isEnter = k === "Enter";
+              const isTab = k === "Tab";
 
               const label = getLabel(k);
               const width = keyWidthMap[k] ?? UNIT;
 
-              // base key active?
               const isActiveBase =
                 (isSpace && activeKey === " ") ||
+                (isEnter && activeKey == "Enter") ||
+                (isTab && activeKey == "Tab") ||
                 (!isShiftLeft &&
                   !isShiftRight &&
                   k.length === 1 &&

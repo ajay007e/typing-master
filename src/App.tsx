@@ -24,7 +24,11 @@ import type {
 } from "./utils/types";
 import { calculateTypingMetrics } from "./utils/metrics";
 import type { TypingMetrics } from "./utils/metrics";
-import { getFingerInfoForChar } from "./utils/keyMapping";
+import { getGraphemes } from "./utils/malayalam";
+import type { GraphemeInfo } from "./utils/typingModel";
+import { buildGraphemeInfos, getTypingProgress } from "./utils/typingModel";
+import { KEY_TO_CODE } from "./utils/keystrokes";
+import { PLACEHOLDER } from "./utils/typingModel";
 
 const STORAGE_KEY = "typing_tutor_v1";
 
@@ -32,7 +36,6 @@ const LETTERS = (lettersConfig as { letters: string[] }).letters;
 const COMMON_WORDS = (commonWordsConfig as { words: string[] }).words;
 const COURSE_LESSONS = courseLessonsConfig as { lessons: CourseLesson[] };
 
-// unlock rules for course
 const WPM_UNLOCK = 25;
 const ACC_UNLOCK = 90;
 
@@ -128,9 +131,15 @@ const App: React.FC = () => {
     "Configure options above and click Generate text / Start lesson to begin.",
   );
   const [statusError, setStatusError] = useState<boolean>(false);
+  const [graphemeInfos, setGraphemeInfos] = useState<GraphemeInfo[]>([]);
 
   const hiddenInputRef = useRef<HTMLTextAreaElement | null>(null);
   const hasRecordedResultRef = useRef<boolean>(false);
+
+  const lastStrokeInfoRef = useRef<{ wrong: boolean; fill: number }>({
+    wrong: false,
+    fill: 0,
+  });
 
   const [testStartTime, setTestStartTime] = useState<number | null>(null);
   const [resultStats, setResultStats] = useState<TypingMetrics | null>(null);
@@ -139,12 +148,27 @@ const App: React.FC = () => {
   const { config, progress } = state;
   const currentMode = config.mode;
   const modeProgress = progress.modes[currentMode];
-  const nextChar =
-    currentText && stage !== "config"
-      ? (currentText[typedText.length] ?? null)
-      : null;
-  const fingerInfo = getFingerInfoForChar(nextChar || undefined);
 
+  const totalTypedUnits = typedText.length;
+  const { charIndex: currentCharIndex, strokeIndex: currentStrokeIndex } =
+    getTypingProgress(graphemeInfos, totalTypedUnits);
+
+  let fingerInfo: { baseKey: string | null; shift: boolean } | null = null;
+
+  if (
+    stage !== "config" &&
+    stage !== "finished" &&
+    graphemeInfos.length > 0 &&
+    currentCharIndex < graphemeInfos.length
+  ) {
+    const current = graphemeInfos[currentCharIndex];
+    const ks = current.keystrokes;
+
+    if (currentStrokeIndex < ks.length) {
+      const k = ks[currentStrokeIndex]; // KeyStroke from your JSON
+      fingerInfo = { baseKey: k.key, shift: k.shift };
+    }
+  }
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -166,7 +190,6 @@ const App: React.FC = () => {
       : lessons[0];
   const currentLesson = resolvedLesson;
 
-  // helpers to update state
   function updateConfig(updater: (cfg: AppConfig) => AppConfig) {
     setState((prev) => ({ ...prev, config: updater(prev.config) }));
   }
@@ -175,7 +198,6 @@ const App: React.FC = () => {
     setState((prev) => ({ ...prev, progress: updater(prev.progress) }));
   }
 
-  // config handlers
   function handleModeChange(mode: AppConfig["mode"]) {
     updateConfig((cfg) => ({ ...cfg, mode }));
   }
@@ -263,12 +285,9 @@ const App: React.FC = () => {
     return Number(lenOption) || 50;
   }
 
-  // test lifecycle
   function prepareTest() {
     setStatusError(false);
-
     let text = "";
-
     if (currentMode === "letters") {
       const len = getLetterLength();
       text = buildLetterString(selectedLetters, len);
@@ -296,7 +315,6 @@ const App: React.FC = () => {
     } else if (currentMode === "course") {
       const lesson = currentLesson;
 
-      // locking: require previous lesson to meet threshold
       const idx = COURSE_LESSONS.lessons.findIndex((l) => l.id === lesson.id);
       if (idx > 0) {
         const prevLesson = COURSE_LESSONS.lessons[idx - 1];
@@ -321,6 +339,7 @@ const App: React.FC = () => {
 
     setCurrentText(text);
     setTypedText("");
+    setGraphemeInfos(buildGraphemeInfos(text));
     setStage("prestart");
     setStatusMsg("Press any key to begin the test.");
     setTestStartTime(null);
@@ -328,6 +347,13 @@ const App: React.FC = () => {
     setShowResult(false);
     hasRecordedResultRef.current = false;
     document.body.classList.add("test-active");
+
+    setTimeout(() => {
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.value = "";
+        hiddenInputRef.current.focus();
+      }
+    }, 0);
   }
 
   const startRunning = useCallback(() => {
@@ -356,7 +382,6 @@ const App: React.FC = () => {
     setResultStats(stats);
     setShowResult(true);
 
-    // update global progress (per mode + per lesson)
     updateProgress((prev) => {
       const modes = { ...prev.modes };
       const lessonsProg = { ...prev.lessons };
@@ -391,15 +416,111 @@ const App: React.FC = () => {
     setStatusMsg("Test completed. Press Esc to return to settings.");
   }
 
+  function handleHiddenKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (stage !== "running") return;
+
+    if (e.key === "Escape") return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "Backspace") {
+      lastStrokeInfoRef.current = { wrong: false, fill: 0 };
+      return;
+    }
+
+    const totalTypedUnits = typedText.length;
+    const { charIndex, strokeIndex } = getTypingProgress(
+      graphemeInfos,
+      totalTypedUnits,
+    );
+
+    if (charIndex >= graphemeInfos.length) {
+      lastStrokeInfoRef.current = { wrong: false, fill: 0 };
+      return;
+    }
+
+    const currentG = graphemeInfos[charIndex];
+    const strokes = currentG.keystrokes;
+    const expected = strokes[strokeIndex];
+
+    if (!expected) {
+      lastStrokeInfoRef.current = { wrong: false, fill: 0 };
+      return;
+    }
+    const isShift = e.shiftKey;
+    const expectedCode = KEY_TO_CODE[expected.key];
+
+    let correct: boolean;
+    if (expectedCode) {
+      correct = e.code === expectedCode && isShift === expected.shift;
+    } else {
+      correct = e.key === expected.key && isShift === expected.shift;
+    }
+    if (!correct) {
+      const strokesRemaining = strokes.length - (strokeIndex + 1);
+      lastStrokeInfoRef.current = {
+        wrong: true,
+        fill: strokesRemaining,
+      };
+    } else {
+      lastStrokeInfoRef.current = { wrong: false, fill: 0 };
+    }
+  }
+
   function handleHiddenInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     if (stage !== "running") return;
-    let val = e.target.value.replace(/\r?\n/g, "");
-    if (val.length > currentText.length) {
-      val = val.slice(0, currentText.length);
-      e.target.value = val;
+
+    const native = e.nativeEvent as InputEvent;
+    const inputType = native.inputType;
+
+    if (inputType === "deleteContentBackward") {
+      setTypedText((prev) => {
+        if (!prev.length) return prev;
+        let i = prev.length - 1;
+        let placeholderCount = 0;
+        while (i >= 0 && prev[i] === PLACEHOLDER) {
+          placeholderCount++;
+          i--;
+        }
+
+        const deleteCount = placeholderCount > 0 ? placeholderCount + 1 : 1;
+
+        const newVal = prev.slice(0, Math.max(0, prev.length - deleteCount));
+
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.value = newVal;
+        }
+
+        return newVal;
+      });
+      return;
     }
+
+    // ✏️ Normal insert / typing path
+    let val = e.target.value.replace(/\r/g, "");
+
+    if (lastStrokeInfoRef.current.wrong) {
+      const { fill } = lastStrokeInfoRef.current;
+      if (fill > 0) {
+        val = val + PLACEHOLDER.repeat(fill);
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.value = val;
+        }
+      }
+      lastStrokeInfoRef.current = { wrong: false, fill: 0 };
+    }
+
+    let visibleVal = val.split(PLACEHOLDER).join("");
+
+    const typed = getGraphemes(visibleVal);
+    const target = getGraphemes(currentText);
+
+    if (typed.length > target.length) {
+      visibleVal = typed.slice(0, target.length).join("");
+    }
+
     setTypedText(val);
-    if (val.length === currentText.length) {
+    const { charIndex } = getTypingProgress(graphemeInfos, val.length);
+
+    if (typed.length === target.length && charIndex >= graphemeInfos.length) {
       finishTest(val);
     }
   }
@@ -431,7 +552,11 @@ const App: React.FC = () => {
         return;
       }
 
-      if (!config.ui.allowBackspace && e.key === "Backspace") {
+      if (
+        stage === "running" &&
+        !config.ui.allowBackspace &&
+        e.key === "Backspace"
+      ) {
         e.preventDefault();
         return;
       }
@@ -440,7 +565,6 @@ const App: React.FC = () => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (stage === "prestart") {
-        e.preventDefault();
         startRunning();
       }
     };
@@ -524,13 +648,10 @@ const App: React.FC = () => {
             hiddenInputRef={hiddenInputRef}
             onHiddenInputChange={handleHiddenInputChange}
             onAreaClick={handleTypingAreaClick}
+            onHiddenKeyDown={handleHiddenKeyDown}
+            graphemeInfos={graphemeInfos}
+            currentCharIndex={currentCharIndex}
           />
-        )}
-
-        {stage !== "config" && (
-          <div className="mt-3">
-            <StatusBar message={statusMsg} isError={statusError} />
-          </div>
         )}
 
         {config.ui.showKeyboard && stage !== "config" && currentText && (

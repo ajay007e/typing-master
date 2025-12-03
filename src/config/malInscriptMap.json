@@ -194,5 +194,159 @@
     "റ": {
         "key": "j",
         "shift": true
+    },
+    "്": {
+        "key": "d",
+        "shift": false
+    },
+    "ാ": {
+        "key": "e",
+        "shift": false
+    },
+    "ി": {
+        "key": "f",
+        "shift": false
+    },
+    "ീ": {
+        "key": "r",
+        "shift": false
+    },
+    "ു": {
+        "key": "g",
+        "shift": false
+    },
+    "ൂ": {
+        "key": "t",
+        "shift": false
+    },
+    "ൃ": {
+        "key": "=",
+        "shift": false
+    },
+    "െ": {
+        "key": "z",
+        "shift": false
+    },
+    "േ": {
+        "key": "s",
+        "shift": false
+    },
+    "ൈ": {
+        "key": "w",
+        "shift": false
+    },
+    "ൊ": {
+        "key": "`",
+        "shift": false
+    },
+    "ോ": {
+        "key": "a",
+        "shift": false
+    },
+    "ൌ": {
+        "key": "q",
+        "shift": false
+    },
+    "ം": {
+        "key": "x",
+        "shift": false
+    },
+    "ഃ": {
+        "key": "-",
+        "shift": true
+    },
+    "ൺ": {
+        "key": "c",
+        "shift": true,
+        "post": [
+            {
+                "key": "d",
+                "shift": false
+            },
+            {
+                "key": "]",
+                "shift": false
+            }
+        ]
+    },
+    "ൻ": {
+        "key": "v",
+        "shift": true,
+        "post": [
+            {
+                "key": "d",
+                "shift": false
+            },
+            {
+                "key": "]",
+                "shift": false
+            }
+        ]
+    },
+    "ർ": {
+        "key": "j",
+        "shift": false,
+        "post": [
+            {
+                "key": "d",
+                "shift": false
+            },
+            {
+                "key": "]",
+                "shift": false
+            }
+        ]
+    },
+    "ൽ": {
+        "key": "n",
+        "shift": false,
+        "post": [
+            {
+                "key": "d",
+                "shift": false
+            },
+            {
+                "key": "]",
+                "shift": false
+            }
+        ]
+    },
+    "ൾ": {
+        "key": "n",
+        "shift": true,
+        "post": [
+            {
+                "key": "d",
+                "shift": false
+            },
+            {
+                "key": "]",
+                "shift": false
+            }
+        ]
+    },
+    " ": {
+        "key": " ",
+        "shift": false
+    },
+    "\n": {
+        "key": "Enter",
+        "shift": false
+    },
+    "\t": {
+        "key": "Tab",
+        "shift": false
+    },
+    ".": {
+        "key": ".",
+        "shift": false
+    },
+    ",": {
+        "key": ",",
+        "shift": false
+    },
+    "?": {
+        "key": "/",
+        "shift": true
     }
 }

@@ -1,5 +1,8 @@
 import React from "react";
 import type { Stage } from "../utils/types";
+import type { GraphemeInfo } from "../utils/typingModel";
+import { PLACEHOLDER } from "../utils/typingModel";
+import { normalizeMalayalam } from "../utils/malayalam";
 
 interface TypingAreaProps {
   currentText: string;
@@ -7,7 +10,10 @@ interface TypingAreaProps {
   stage: Stage;
   hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
   onHiddenInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onHiddenKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onAreaClick: () => void;
+  graphemeInfos: GraphemeInfo[];
+  currentCharIndex: number;
 }
 
 const TypingArea: React.FC<TypingAreaProps> = ({
@@ -16,7 +22,10 @@ const TypingArea: React.FC<TypingAreaProps> = ({
   stage,
   hiddenInputRef,
   onHiddenInputChange,
+  onHiddenKeyDown,
   onAreaClick,
+  graphemeInfos,
+  currentCharIndex,
 }) => {
   return (
     <div className="mt-6 relative">
@@ -33,38 +42,76 @@ const TypingArea: React.FC<TypingAreaProps> = ({
       >
         {!currentText
           ? "No text loaded. Generate text to begin."
-          : currentText.split("").map((ch, idx) => {
-            const targetChar = ch;
-            const typedChar = typedText[idx];
-            let cls = "whitespace-pre";
+          : (() => {
+            const targetGraphemes = graphemeInfos.map((g) => g.grapheme);
 
-            if (stage === "prestart") {
-              if (idx > 0) cls += " text-transparent bg-slate-900 rounded";
-            } else if (stage === "running") {
-              if (typedChar != null) {
-                cls +=
-                  typedChar === targetChar
-                    ? " text-emerald-400"
-                    : " text-red-400 underline";
-              } else if (idx === typedText.length) {
-                cls +=
-                  " relative after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-slate-100 after:animate-pulse";
-              }
-            } else if (stage === "finished") {
-              if (typedChar != null) {
-                cls +=
-                  typedChar === targetChar
-                    ? " text-emerald-400"
-                    : " text-red-400 underline";
-              }
+            const typedChunks: string[] = [];
+            let pos = 0;
+            for (let i = 0; i < graphemeInfos.length; i++) {
+              const strokesNeeded = graphemeInfos[i].keystrokes.length || 1;
+              const end = Math.min(typedText.length, pos + strokesNeeded);
+              typedChunks.push(typedText.slice(pos, end));
+              pos += strokesNeeded;
             }
 
-            return (
-              <span key={idx} className={cls}>
-                {ch}
-              </span>
-            );
-          })}
+            return targetGraphemes.map((ch, idx) => {
+              const targetChar = ch;
+              const strokesNeeded =
+                graphemeInfos[idx]?.keystrokes.length || 1;
+              const chunk = typedChunks[idx] ?? ""; // raw typed chars (may include PLACEHOLDER)
+
+              // strip placeholders for logical comparison
+              const chunkVisible = chunk.split(PLACEHOLDER).join("");
+
+              const normTarget = normalizeMalayalam(targetChar);
+              const normTyped = normalizeMalayalam(chunkVisible);
+
+              const isComplete = chunk.length === strokesNeeded;
+
+              let cls = "whitespace-pre";
+
+              if (stage === "prestart") {
+                if (idx > 0) cls += " text-transparent bg-slate-900 rounded";
+              } else if (stage === "running") {
+                if (idx < currentCharIndex) {
+                  // Already moved past this grapheme → finished
+                  if (isComplete && normTyped === normTarget) {
+                    cls += " text-emerald-400";
+                  } else {
+                    cls += " text-red-400 underline";
+                  }
+                } else if (idx === currentCharIndex) {
+                  // Active grapheme
+                  if (!isComplete) {
+                    // Still consuming keystrokes → white with caret underline
+                    cls +=
+                      " text-slate-50 relative after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-slate-100 after:animate-pulse";
+                  } else {
+                    // Just completed, but cursor didn't move yet (edge case)
+                    if (normTyped === normTarget) {
+                      cls += " text-emerald-400";
+                    } else {
+                      cls += " text-red-400 underline";
+                    }
+                  }
+                } else {
+                  // Future graphemes: default style
+                }
+              } else if (stage === "finished") {
+                if (isComplete && normTyped === normTarget) {
+                  cls += " text-emerald-400";
+                } else {
+                  cls += " text-red-400 underline";
+                }
+              }
+
+              return (
+                <span key={idx} className={cls}>
+                  {targetChar}
+                </span>
+              );
+            });
+          })()}
       </div>
 
       {/* hidden input */}
@@ -76,6 +123,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({
         autoCapitalize="off"
         spellCheck={false}
         onChange={onHiddenInputChange}
+        onKeyDown={onHiddenKeyDown}
       />
 
       {/* prestart overlay */}
