@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import type { Stage } from "../utils/types";
 import type { GraphemeInfo } from "../utils/typingModel";
 import { PLACEHOLDER } from "../utils/typingModel";
@@ -14,6 +14,8 @@ interface TypingAreaProps {
   onAreaClick: () => void;
   graphemeInfos: GraphemeInfo[];
   currentCharIndex: number;
+  fontFamily: string; // "default" | "anek" | "chilanka" | "manjari"
+  fontSize: string; // "text-base" | "text-lg" | "text-xl" | ...
 }
 
 const TypingArea: React.FC<TypingAreaProps> = ({
@@ -26,92 +28,161 @@ const TypingArea: React.FC<TypingAreaProps> = ({
   onAreaClick,
   graphemeInfos,
   currentCharIndex,
+  fontFamily,
+  fontSize,
 }) => {
+  // Inner scrolling window (3-line viewport)
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  // Active character span
+  const activeCharRef = useRef<HTMLSpanElement | null>(null);
+
+  // Auto-scroll: keep active line in the middle of the 3-line window
+  useEffect(() => {
+    const container = containerRef.current;
+    const active = activeCharRef.current;
+    if (!container) return;
+
+    // Before running / after reset, always show from top
+    if (stage !== "running" && stage !== "finished") {
+      container.scrollTop = 0;
+      return;
+    }
+
+    if (!active) return;
+
+    const cRect = container.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+
+    const currentTop = container.scrollTop;
+    const offsetTop = aRect.top - cRect.top + currentTop; // char top in scrollable content
+
+    // Window is exactly 3 lines high → line height ≈ 1/3 of height
+    const lineHeightPx = container.clientHeight / 3;
+
+    // We want the active line around the middle: its top ≈ one line from top
+    let targetScrollTop = offsetTop - lineHeightPx;
+
+    // Clamp scrolling
+    const maxScroll = container.scrollHeight - container.clientHeight;
+    if (targetScrollTop < 0) targetScrollTop = 0;
+    if (targetScrollTop > maxScroll) targetScrollTop = maxScroll;
+
+    container.scrollTop = targetScrollTop;
+  }, [currentCharIndex, stage]);
+
+  // Block wheel / touch scroll from user (only our code moves the window)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const preventScroll = (e: Event) => {
+      e.preventDefault();
+    };
+
+    el.addEventListener("wheel", preventScroll, { passive: false });
+    el.addEventListener("touchmove", preventScroll, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", preventScroll);
+      el.removeEventListener("touchmove", preventScroll);
+    };
+  }, []);
+
   return (
     <div className="mt-6 relative">
+      {/* Outer box: padding + border + background */}
       <div
-        className={[
-          "min-h-[120px] max-h-[60vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 px-4 py-4 text-lg leading-8",
-          "whitespace-pre-wrap break-words",
-          !currentText &&
-          "text-sm text-slate-500 flex items-center justify-center",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        className="w-[50vw] rounded-2xl border border-slate-800 bg-slate-950 px-4 py-4"
         onClick={onAreaClick}
       >
-        {!currentText
-          ? "No text loaded. Generate text to begin."
-          : (() => {
-            const targetGraphemes = graphemeInfos.map((g) => g.grapheme);
+        {/* Inner window: exactly 3 lines high, no padding */}
+        <div
+          ref={containerRef}
+          className={[
+            "typing-window whitespace-pre-wrap break-words", // defined in CSS
+            fontSize,
+            fontFamily === "default" && "font-ml-nsm",
+            fontFamily === "anek" && "font-ml-am",
+            fontFamily === "chilanka" && "font-ml-c",
+            fontFamily === "manjari" && "font-ml-m",
+            !currentText &&
+            "text-sm text-slate-500 flex items-center justify-center",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {!currentText
+            ? "No text loaded. Generate text to begin."
+            : (() => {
+              const targetGraphemes = graphemeInfos.map((g) => g.grapheme);
 
-            const typedChunks: string[] = [];
-            let pos = 0;
-            for (let i = 0; i < graphemeInfos.length; i++) {
-              const strokesNeeded = graphemeInfos[i].keystrokes.length || 1;
-              const end = Math.min(typedText.length, pos + strokesNeeded);
-              typedChunks.push(typedText.slice(pos, end));
-              pos += strokesNeeded;
-            }
+              const typedChunks: string[] = [];
+              let pos = 0;
+              for (let i = 0; i < graphemeInfos.length; i++) {
+                const strokesNeeded = graphemeInfos[i].keystrokes.length || 1;
+                const end = Math.min(typedText.length, pos + strokesNeeded);
+                typedChunks.push(typedText.slice(pos, end));
+                pos += strokesNeeded;
+              }
 
-            return targetGraphemes.map((ch, idx) => {
-              const targetChar = ch;
-              const strokesNeeded =
-                graphemeInfos[idx]?.keystrokes.length || 1;
-              const chunk = typedChunks[idx] ?? ""; // raw typed chars (may include PLACEHOLDER)
+              return targetGraphemes.map((ch, idx) => {
+                const targetChar = ch;
+                const strokesNeeded =
+                  graphemeInfos[idx]?.keystrokes.length || 1;
+                const chunk = typedChunks[idx] ?? "";
 
-              // strip placeholders for logical comparison
-              const chunkVisible = chunk.split(PLACEHOLDER).join("");
+                const chunkVisible = chunk.split(PLACEHOLDER).join("");
 
-              const normTarget = normalizeMalayalam(targetChar);
-              const normTyped = normalizeMalayalam(chunkVisible);
+                const normTarget = normalizeMalayalam(targetChar);
+                const normTyped = normalizeMalayalam(chunkVisible);
 
-              const isComplete = chunk.length === strokesNeeded;
+                const isComplete = chunk.length === strokesNeeded;
 
-              let cls = "whitespace-pre";
+                let cls = "whitespace-pre";
+                const isActive = idx === currentCharIndex;
 
-              if (stage === "prestart") {
-                if (idx > 0) cls += " text-transparent bg-slate-900 rounded";
-              } else if (stage === "running") {
-                if (idx < currentCharIndex) {
-                  // Already moved past this grapheme → finished
+                if (stage === "prestart") {
+                  if (idx > 0)
+                    cls += " text-transparent bg-slate-900 rounded";
+                } else if (stage === "running") {
+                  if (idx < currentCharIndex) {
+                    if (isComplete && normTyped === normTarget) {
+                      cls += " text-emerald-400";
+                    } else {
+                      cls += " text-red-400 underline";
+                    }
+                  } else if (isActive) {
+                    if (!isComplete) {
+                      cls +=
+                        " text-slate-50 relative after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-slate-100 after:animate-pulse";
+                    } else {
+                      if (normTyped === normTarget) {
+                        cls += " text-emerald-400";
+                      } else {
+                        cls += " text-red-400 underline";
+                      }
+                    }
+                  }
+                } else if (stage === "finished") {
                   if (isComplete && normTyped === normTarget) {
                     cls += " text-emerald-400";
                   } else {
                     cls += " text-red-400 underline";
                   }
-                } else if (idx === currentCharIndex) {
-                  // Active grapheme
-                  if (!isComplete) {
-                    // Still consuming keystrokes → white with caret underline
-                    cls +=
-                      " text-slate-50 relative after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-slate-100 after:animate-pulse";
-                  } else {
-                    // Just completed, but cursor didn't move yet (edge case)
-                    if (normTyped === normTarget) {
-                      cls += " text-emerald-400";
-                    } else {
-                      cls += " text-red-400 underline";
-                    }
-                  }
-                } else {
-                  // Future graphemes: default style
                 }
-              } else if (stage === "finished") {
-                if (isComplete && normTyped === normTarget) {
-                  cls += " text-emerald-400";
-                } else {
-                  cls += " text-red-400 underline";
-                }
-              }
 
-              return (
-                <span key={idx} className={cls}>
-                  {targetChar}
-                </span>
-              );
-            });
-          })()}
+                return (
+                  <span
+                    key={idx}
+                    className={cls}
+                    ref={isActive ? activeCharRef : undefined}
+                  >
+                    {targetChar}
+                  </span>
+                );
+              });
+            })()}
+        </div>
       </div>
 
       {/* hidden input */}

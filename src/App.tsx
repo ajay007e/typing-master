@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./index.css";
 
 import lettersConfig from "./config/letters.json";
@@ -6,10 +6,10 @@ import commonWordsConfig from "./config/commonWords.json";
 import courseLessonsConfig from "./config/course.json";
 
 import ModeHeader from "./components/ModeHeader";
-import LetterPanel from "./components/LetterPanel";
-import ParagraphPanel from "./components/ParagraphPanel";
-import CommonWordsPanel from "./components/CommonWordsPanel";
-import CoursePanel from "./components/CoursePanel";
+import ModeSelectModal from "./components/ModeSelectModal";
+import SettingsModal from "./components/SettingsModal";
+import ConfigModal from "./components/ConfigModal";
+
 import TypingArea from "./components/TypingArea";
 import StatusBar from "./components/StatusBar";
 import ResultOverlay from "./components/ResultOverlay";
@@ -59,6 +59,8 @@ const defaultConfig: AppConfig = {
   ui: {
     showKeyboard: true,
     allowBackspace: true,
+    fontFamily: "default",
+    fontSize: "text-lg",
   },
 };
 
@@ -80,9 +82,22 @@ function loadInitialState(): AppState {
     const parsed = JSON.parse(raw) as AppState;
 
     if (!parsed.config.ui) {
-      parsed.config.ui = { showKeyboard: true, allowBackspace: true };
-    } else if (parsed.config.ui.allowBackspace === undefined) {
-      parsed.config.ui.allowBackspace = true;
+      parsed.config.ui = {
+        showKeyboard: true,
+        allowBackspace: true,
+        fontFamily: "default",
+        fontSize: "text-lg",
+      };
+    } else {
+      if (parsed.config.ui.allowBackspace === undefined) {
+        parsed.config.ui.allowBackspace = true;
+      }
+      if (!parsed.config.ui.fontFamily) {
+        parsed.config.ui.fontFamily = "default";
+      }
+      if (!parsed.config.ui.fontSize) {
+        parsed.config.ui.fontSize = "text-lg";
+      }
     }
 
     return parsed;
@@ -122,13 +137,60 @@ function buildCommonParagraph(totalWords: number): string {
   return sentences.join(" ").trim();
 }
 
+function prettyModeName(mode: AppConfig["mode"]): string {
+  switch (mode) {
+    case "letters":
+      return "Letters";
+    case "paragraph":
+      return "Paragraph";
+    case "common":
+      return "Common letters";
+    case "course":
+      return "Course";
+    default:
+      return mode;
+  }
+}
+
+const MODES_META: {
+  id: AppConfig["mode"];
+  label: string;
+  description: string;
+  icon: "keyboard" | "document" | "stats" | "graduation";
+}[] = [
+    {
+      id: "letters",
+      label: "Letters",
+      description: "Practice individual letters and build finger memory.",
+      icon: "keyboard",
+    },
+    {
+      id: "paragraph",
+      label: "Paragraph",
+      description: "Type full paragraphs to improve flow and rhythm.",
+      icon: "document",
+    },
+    {
+      id: "common",
+      label: "Common letters",
+      description: "Focus on the most frequently used Malayalam letters.",
+      icon: "stats",
+    },
+    {
+      id: "course",
+      label: "Course",
+      description: "Follow a structured step-by-step typing course.",
+      icon: "graduation",
+    },
+  ];
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => loadInitialState());
   const [currentText, setCurrentText] = useState<string>("");
   const [typedText, setTypedText] = useState<string>("");
   const [stage, setStage] = useState<Stage>("config");
   const [statusMsg, setStatusMsg] = useState<string>(
-    "Configure options above and click Generate text / Start lesson to begin.",
+    "Pick a mode to begin practicing.",
   );
   const [statusError, setStatusError] = useState<boolean>(false);
   const [graphemeInfos, setGraphemeInfos] = useState<GraphemeInfo[]>([]);
@@ -144,6 +206,17 @@ const App: React.FC = () => {
   const [testStartTime, setTestStartTime] = useState<number | null>(null);
   const [resultStats, setResultStats] = useState<TypingMetrics | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
+
+  // UI state
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+  const [showModeModal, setShowModeModal] = useState<boolean>(true); // Show mode picker at start
+
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "dark";
+    const stored = localStorage.getItem("theme");
+    return stored === "light" || stored === "dark" ? stored : "dark";
+  });
 
   const { config, progress } = state;
   const currentMode = config.mode;
@@ -165,10 +238,12 @@ const App: React.FC = () => {
     const ks = current.keystrokes;
 
     if (currentStrokeIndex < ks.length) {
-      const k = ks[currentStrokeIndex]; // KeyStroke from your JSON
+      const k = ks[currentStrokeIndex];
       fingerInfo = { baseKey: k.key, shift: k.shift };
     }
   }
+
+  // Persist app state
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -177,10 +252,21 @@ const App: React.FC = () => {
     }
   }, [state]);
 
-  const selectedLetters =
-    config.letters.selectedLetters && config.letters.selectedLetters.length
-      ? config.letters.selectedLetters
-      : LETTERS;
+  // Apply theme
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {
+      // ignore
+    }
+  }, [theme]);
 
   const lessons = COURSE_LESSONS.lessons;
   const resolvedLesson =
@@ -189,6 +275,11 @@ const App: React.FC = () => {
       ? (lessons.find((l) => l.id === config.course.lessonId) as CourseLesson)
       : lessons[0];
   const currentLesson = resolvedLesson;
+
+  const selectedLetters =
+    config.letters.selectedLetters && config.letters.selectedLetters.length
+      ? config.letters.selectedLetters
+      : LETTERS;
 
   function updateConfig(updater: (cfg: AppConfig) => AppConfig) {
     setState((prev) => ({ ...prev, config: updater(prev.config) }));
@@ -202,70 +293,76 @@ const App: React.FC = () => {
     updateConfig((cfg) => ({ ...cfg, mode }));
   }
 
-  function handleLetterToggle(ch: string) {
+  // Letter config handlers
+  const handleLetterToggle = (ch: string) => {
     updateConfig((cfg) => {
       const current = cfg.letters.selectedLetters ?? [...LETTERS];
       const exists = current.includes(ch);
       const next = exists ? current.filter((c) => c !== ch) : [...current, ch];
       return { ...cfg, letters: { ...cfg.letters, selectedLetters: next } };
     });
-  }
+  };
 
-  function selectAllLetters() {
+  const selectAllLetters = () => {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, selectedLetters: [...LETTERS] },
     }));
-  }
+  };
 
-  function clearAllLetters() {
+  const clearAllLetters = () => {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, selectedLetters: [] },
     }));
-  }
+  };
 
-  function handleLenOptionChange(val: AppConfig["letters"]["lenOption"]) {
+  const handleLenOptionChange = (val: AppConfig["letters"]["lenOption"]) => {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, lenOption: val },
     }));
-  }
+  };
 
-  function handleLenCustomChange(val: string) {
+  const handleLenCustomChange = (val: string) => {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, customLength: val },
     }));
-  }
+  };
 
-  function handleCommonLenOptionChange(val: AppConfig["common"]["lenOption"]) {
+  // Common words config
+  const handleCommonLenOptionChange = (
+    val: AppConfig["common"]["lenOption"],
+  ) => {
     updateConfig((cfg) => ({
       ...cfg,
       common: { ...cfg.common, lenOption: val },
     }));
-  }
+  };
 
-  function handleCommonLenCustomChange(val: string) {
+  const handleCommonLenCustomChange = (val: string) => {
     updateConfig((cfg) => ({
       ...cfg,
       common: { ...cfg.common, customLength: val },
     }));
-  }
+  };
 
-  function handleParagraphChange(text: string) {
+  // Paragraph config
+  const handleParagraphChange = (text: string) => {
     updateConfig((cfg) => ({
       ...cfg,
       paragraph: { ...cfg.paragraph, text },
     }));
-  }
+  };
 
-  function handleCourseLessonChange(lessonId: string) {
+  // Course config
+  const handleCourseLessonChange = (lessonId: string) => {
     updateConfig((cfg) => ({
       ...cfg,
       course: { ...cfg.course, lessonId },
     }));
-  }
+  };
 
   function getLetterLength(): number {
     const { lenOption, customLength } = config.letters;
@@ -288,6 +385,7 @@ const App: React.FC = () => {
   function prepareTest() {
     setStatusError(false);
     let text = "";
+
     if (currentMode === "letters") {
       const len = getLetterLength();
       text = buildLetterString(selectedLetters, len);
@@ -360,7 +458,7 @@ const App: React.FC = () => {
   const startRunning = useCallback(() => {
     if (stage !== "prestart") return;
     setStage("running");
-    setStatusMsg("Typing… press Esc to cancel.");
+    setStatusMsg("Typing… press Esc to reset.");
     setStatusError(false);
     setTestStartTime(Date.now());
     if (hiddenInputRef.current) {
@@ -371,9 +469,7 @@ const App: React.FC = () => {
 
   function finishTest(inputText: string) {
     if (stage !== "running") return;
-    if (hasRecordedResultRef.current) {
-      return;
-    }
+    if (hasRecordedResultRef.current) return;
     hasRecordedResultRef.current = true;
 
     const endTime = Date.now();
@@ -388,14 +484,12 @@ const App: React.FC = () => {
       const modes = { ...prev.modes };
       const lessonsProg = { ...prev.lessons };
 
-      // per-mode stats
       const mm = modes[currentMode] || { runs: 0, bestWpm: 0, bestAcc: 0 };
       mm.runs += 1;
       if (stats.wpm > mm.bestWpm) mm.bestWpm = stats.wpm;
       if (stats.accuracy > mm.bestAcc) mm.bestAcc = stats.accuracy;
       modes[currentMode] = mm;
 
-      // per-lesson stats only for course mode
       if (currentMode === "course") {
         const lesson = currentLesson;
         const lp = lessonsProg[lesson.id] || {
@@ -415,7 +509,7 @@ const App: React.FC = () => {
     });
 
     setStage("finished");
-    setStatusMsg("Test completed. Press Esc to return to settings.");
+    setStatusMsg("Test completed. Press Enter to retry or Esc to reset.");
     setStatusError(false);
   }
 
@@ -533,32 +627,48 @@ const App: React.FC = () => {
   }
 
   function handleTypingAreaClick() {
-    if (stage === "running" && hiddenInputRef.current) {
+    if (
+      (stage === "running" || stage === "prestart") &&
+      hiddenInputRef.current
+    ) {
       hiddenInputRef.current.focus();
     }
   }
 
-  function resetToConfig() {
-    setStage("config");
-    setCurrentText("");
+  // Reset current test but keep mode & text
+  function resetTest() {
+    if (!currentText) return;
     setTypedText("");
-    setStatusMsg(
-      "Configure options above and click Generate text / Start lesson to begin.",
-    );
-    setStatusError(false);
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.value = "";
+    }
+    setStage("prestart");
     setShowResult(false);
-    document.body.classList.remove("test-active");
+    setResultStats(null);
+    setTestStartTime(null);
+    hasRecordedResultRef.current = false;
+    setStatusMsg("Press any key to begin the test.");
+    setStatusError(false);
   }
 
-  // global keydown
+  // Global keydown: Esc reset test, Enter on result, backspace prevention, start from prestart
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      // Enter on result overlay → repeat test
+      if (showResult && e.key === "Enter") {
         e.preventDefault();
-        resetToConfig();
+        prepareTest();
         return;
       }
 
+      // Esc → reset current test (keep text & mode)
+      if (e.key === "Escape") {
+        e.preventDefault();
+        resetTest();
+        return;
+      }
+
+      // Prevent Backspace if disabled
       if (
         stage === "running" &&
         !config.ui.allowBackspace &&
@@ -586,94 +696,68 @@ const App: React.FC = () => {
           return;
         }
 
-        // For Malayalam letters / space / punctuation / Enter: start the test
-        // IMPORTANT: don't block the key; we want it to be typed as the first input
         startRunning();
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [stage, currentText, config.ui.allowBackspace, startRunning]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, currentText, config.ui.allowBackspace, startRunning, showResult]);
+
+  useEffect(() => {
+    if (showModeModal) return;
+    if (!currentMode) return;
+    prepareTest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    config.mode,
+    config.letters,
+    config.paragraph,
+    config.common,
+    config.course,
+  ]);
+
+  // Mode selection: from cards modal
+  const handleModeCardSelect = (modeId: AppConfig["mode"]) => {
+    handleModeChange(modeId);
+    setShowModeModal(false);
+    setStatusMsg("Press any key to begin the test.");
+    setStatusError(false);
+  };
+
+  // Clicking mode name in header → reopen mode modal
+  const handleHeaderModeClick = () => {
+    setShowModeModal(true);
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 text-slate-50">
-      <div className="w-full max-w-5xl px-4 py-6 relative">
-        {stage === "config" && (
-          <>
-            <ModeHeader
-              mode={currentMode}
-              onModeChange={handleModeChange}
-              onStart={prepareTest}
-              showKeyboard={config.ui.showKeyboard}
-              onToggleKeyboard={(val) =>
-                updateConfig((cfg) => ({
-                  ...cfg,
-                  ui: { ...cfg.ui, showKeyboard: val },
-                }))
-              }
-              allowBackspace={config.ui.allowBackspace}
-              onToggleBackspace={(val) =>
-                updateConfig((cfg) => ({
-                  ...cfg,
-                  ui: { ...cfg.ui, allowBackspace: val },
-                }))
-              }
-            />
+    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-50">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6">
+        <ModeHeader
+          appName="Typing Master"
+          selectedModeLabel={prettyModeName(currentMode)}
+          onSelectedModeClick={handleHeaderModeClick}
+          onOpenSettings={() => setShowSettingsModal(true)}
+          onOpenConfig={() => setShowConfigModal(true)}
+        />
 
-            {currentMode === "letters" && (
-              <LetterPanel
-                letters={LETTERS}
-                selectedLetters={selectedLetters}
-                configLetters={config.letters}
-                onToggleLetter={handleLetterToggle}
-                onLenOptionChange={handleLenOptionChange}
-                onLenCustomChange={handleLenCustomChange}
-                onSelectAll={selectAllLetters}
-                onClear={clearAllLetters}
-              />
-            )}
-
-            {currentMode === "paragraph" && (
-              <ParagraphPanel
-                text={config.paragraph.text}
-                onChange={handleParagraphChange}
-              />
-            )}
-
-            {currentMode === "common" && (
-              <CommonWordsPanel
-                commonConfig={config.common}
-                onLenOptionChange={handleCommonLenOptionChange}
-                onCustomChange={handleCommonLenCustomChange}
-              />
-            )}
-
-            {currentMode === "course" && (
-              <CoursePanel
-                lessons={COURSE_LESSONS.lessons}
-                currentLesson={currentLesson}
-                lessonId={config.course.lessonId}
-                lessonProgressMap={progress.lessons}
-                onLessonChange={handleCourseLessonChange}
-              />
-            )}
-          </>
-        )}
-
-        {stage !== "config" && currentText && (
+        {/* Typing area is always visible */}
+        <main className="mt-6 flex flex-1 items-center justify-center">
           <TypingArea
             currentText={currentText}
             typedText={typedText}
             stage={stage}
             hiddenInputRef={hiddenInputRef}
             onHiddenInputChange={handleHiddenInputChange}
-            onAreaClick={handleTypingAreaClick}
             onHiddenKeyDown={handleHiddenKeyDown}
+            onAreaClick={handleTypingAreaClick}
             graphemeInfos={graphemeInfos}
             currentCharIndex={currentCharIndex}
+            fontFamily={config.ui.fontFamily}
+            fontSize={config.ui.fontSize}
           />
-        )}
+        </main>
 
         <StatusBar message={statusMsg} isError={statusError} />
 
@@ -688,7 +772,80 @@ const App: React.FC = () => {
           modeName={currentMode}
           modeProgress={modeProgress}
         />
+
+        <footer className="mt-6 border-t border-slate-800 pt-3 text-center text-[11px] text-slate-500">
+          © {new Date().getFullYear()} Typing Master · Malayalam typing
+          practice
+        </footer>
       </div>
+
+      {/* Mode selection modal */}
+      <ModeSelectModal
+        open={showModeModal}
+        onClose={() => setShowModeModal(false)}
+        modes={MODES_META}
+        selectedModeId={currentMode}
+        onSelectMode={handleModeCardSelect}
+      />
+
+      {/* Settings modal */}
+      <SettingsModal
+        open={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        showKeyboard={config.ui.showKeyboard}
+        onToggleKeyboard={(value) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            ui: { ...cfg.ui, showKeyboard: value },
+          }))
+        }
+        preventBackspace={!config.ui.allowBackspace}
+        onTogglePreventBackspace={(value) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            ui: { ...cfg.ui, allowBackspace: !value },
+          }))
+        }
+        theme={theme}
+        onToggleTheme={() =>
+          setTheme((prev) => (prev === "dark" ? "light" : "dark"))
+        }
+        fontFamily={config.ui.fontFamily}
+        fontSize={config.ui.fontSize}
+        onChangeFontFamily={(value) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            ui: { ...cfg.ui, fontFamily: value },
+          }))
+        }
+        onChangeFontSize={(value) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            ui: { ...cfg.ui, fontSize: value },
+          }))
+        }
+      />
+
+      {/* Configuration modal */}
+      <ConfigModal
+        open={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        mode={currentMode}
+        config={config}
+        progress={progress}
+        lessons={COURSE_LESSONS.lessons}
+        currentLesson={currentLesson}
+        letters={LETTERS}
+        onToggleLetter={handleLetterToggle}
+        onLenOptionChange={handleLenOptionChange}
+        onLenCustomChange={handleLenCustomChange}
+        onSelectAll={selectAllLetters}
+        onClear={clearAllLetters}
+        onParagraphChange={handleParagraphChange}
+        onCommonLenChange={handleCommonLenOptionChange}
+        onCommonCustomChange={handleCommonLenCustomChange}
+        onCourseLessonChange={handleCourseLessonChange}
+      />
     </div>
   );
 };

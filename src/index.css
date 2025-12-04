@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wght@100..800&family=Chilanka&family=Manjari:wght@100;400;700&family=Noto+Sans+Malayalam:wght@100..900&display=swap");
+
 @import "tailwindcss";
 
 html,
@@ -11,4 +13,32 @@ body,
 
 body {
   @apply m-0 min-h-screen bg-slate-900;
+}
+
+@theme {
+  --font-ml-nsm: "Noto Sans Malayalam", sans-serif;
+  --font-ml-am: "Anek Malayalam", sans-serif;
+  --font-ml-c: "Chilanka", cursive;
+  --font-ml-m: "Manjari", sans-serif;
+}
+
+.typing-window {
+  line-height: 1.6;
+  /* consistent line spacing */
+  height: calc(1.6em * 3);
+  /* exactly 3 lines high */
+  overflow: hidden;
+  /* hide anything outside the window */
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
 }

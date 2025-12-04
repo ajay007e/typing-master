@@ -43,6 +43,8 @@ export interface AppConfig {
     ui: {
         allowBackspace: boolean;
         showKeyboard: boolean;
+        fontFamily: string;
+        fontSize: string;
     };
 }
 
