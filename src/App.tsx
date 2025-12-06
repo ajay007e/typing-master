@@ -14,6 +14,8 @@ import TypingArea from "./components/TypingArea";
 import StatusBar from "./components/StatusBar";
 import ResultOverlay from "./components/ResultOverlay";
 import KeyboardLayout from "./components/KeyboardLayout";
+import LessonResultModal from "./components/LessonResultModal";
+import FamiliarizeModal from "./components/FamiliarizeModal";
 
 import type {
   AppState,
@@ -26,9 +28,14 @@ import { calculateTypingMetrics } from "./utils/metrics";
 import type { TypingMetrics } from "./utils/metrics";
 import { isMalayalamChar } from "./utils/malayalam";
 import type { GraphemeInfo } from "./utils/typingModel";
-import { buildGraphemeInfos, getTypingProgress } from "./utils/typingModel";
+import {
+  buildGraphemeInfos,
+  getTypingProgress,
+  PLACEHOLDER,
+} from "./utils/typingModel";
 import { KEY_TO_CODE } from "./utils/keystrokes";
-import { PLACEHOLDER } from "./utils/typingModel";
+
+import { computeLessonScore, canAdvanceLesson } from "./utils/scoring";
 
 const STORAGE_KEY = "typing_tutor_v1";
 
@@ -137,14 +144,14 @@ function buildCommonParagraph(totalWords: number): string {
   return sentences.join(" ").trim();
 }
 
-function prettyModeName(mode: AppConfig["mode"]): string {
+function prettyModeName(mode: AppConfig["mode"]) {
   switch (mode) {
     case "letters":
       return "Letters";
     case "paragraph":
       return "Paragraph";
     case "common":
-      return "Common letters";
+      return "Common words";
     case "course":
       return "Course";
     default:
@@ -161,25 +168,25 @@ const MODES_META: {
     {
       id: "letters",
       label: "Letters",
-      description: "Practice individual letters and build finger memory.",
+      description: "Practice individual letters and keystrokes.",
       icon: "keyboard",
     },
     {
       id: "paragraph",
       label: "Paragraph",
-      description: "Type full paragraphs to improve flow and rhythm.",
+      description: "Type full paragraphs to build rhythm.",
       icon: "document",
     },
     {
       id: "common",
-      label: "Common letters",
-      description: "Focus on the most frequently used Malayalam letters.",
+      label: "Common words",
+      description: "Practice most frequent Malayalam words.",
       icon: "stats",
     },
     {
       id: "course",
       label: "Course",
-      description: "Follow a structured step-by-step typing course.",
+      description: "Structured lessons with progression.",
       icon: "graduation",
     },
   ];
@@ -194,10 +201,16 @@ const App: React.FC = () => {
   );
   const [statusError, setStatusError] = useState<boolean>(false);
   const [graphemeInfos, setGraphemeInfos] = useState<GraphemeInfo[]>([]);
+  const [showFamiliarize, setShowFamiliarize] = useState<boolean>(false);
+  const [preLessonDoneMap, setPreLessonDoneMap] = useState<
+    Record<string, boolean>
+  >({});
+  const [familiarizeTarget, setFamiliarizeTarget] = useState<string | null>(
+    null,
+  );
 
   const hiddenInputRef = useRef<HTMLTextAreaElement | null>(null);
   const hasRecordedResultRef = useRef<boolean>(false);
-
   const lastStrokeInfoRef = useRef<{ wrong: boolean; fill: number }>({
     wrong: false,
     fill: 0,
@@ -207,10 +220,18 @@ const App: React.FC = () => {
   const [resultStats, setResultStats] = useState<TypingMetrics | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
 
-  // UI state
+  // Lesson result modal state
+  const [lessonResult, setLessonResult] = useState<{
+    open: boolean;
+    stats?: TypingMetrics;
+    computed?: ReturnType<typeof computeLessonScore>;
+    canAdvance?: boolean;
+  }>({ open: false });
+
+  // UI modals
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
-  const [showModeModal, setShowModeModal] = useState<boolean>(true); // Show mode picker at start
+  const [showModeModal, setShowModeModal] = useState<boolean>(true); // show mode picker at start
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "dark";
@@ -236,14 +257,12 @@ const App: React.FC = () => {
   ) {
     const current = graphemeInfos[currentCharIndex];
     const ks = current.keystrokes;
-
     if (currentStrokeIndex < ks.length) {
       const k = ks[currentStrokeIndex];
       fingerInfo = { baseKey: k.key, shift: k.shift };
     }
   }
 
-  // Persist app state
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -252,15 +271,11 @@ const App: React.FC = () => {
     }
   }, [state]);
 
-  // Apply theme
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    if (theme === "dark") root.classList.add("dark");
+    else root.classList.remove("dark");
     try {
       localStorage.setItem("theme", theme);
     } catch {
@@ -293,76 +308,68 @@ const App: React.FC = () => {
     updateConfig((cfg) => ({ ...cfg, mode }));
   }
 
-  // Letter config handlers
-  const handleLetterToggle = (ch: string) => {
+  // Letter handlers
+  function handleLetterToggle(ch: string) {
     updateConfig((cfg) => {
       const current = cfg.letters.selectedLetters ?? [...LETTERS];
       const exists = current.includes(ch);
       const next = exists ? current.filter((c) => c !== ch) : [...current, ch];
       return { ...cfg, letters: { ...cfg.letters, selectedLetters: next } };
     });
-  };
-
-  const selectAllLetters = () => {
+  }
+  function selectAllLetters() {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, selectedLetters: [...LETTERS] },
     }));
-  };
-
-  const clearAllLetters = () => {
+  }
+  function clearAllLetters() {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, selectedLetters: [] },
     }));
-  };
-
-  const handleLenOptionChange = (val: AppConfig["letters"]["lenOption"]) => {
+  }
+  function handleLenOptionChange(val: AppConfig["letters"]["lenOption"]) {
     updateConfig((cfg) => ({
       ...cfg,
       letters: { ...cfg.letters, lenOption: val },
     }));
-  };
-
-  const handleLenCustomChange = (val: string) => {
+  }
+  function handleLenCustomChange(val: string) {
+    const n = Number(val) || 0;
     updateConfig((cfg) => ({
       ...cfg,
-      letters: { ...cfg.letters, customLength: val },
+      letters: { ...cfg.letters, customLength: n },
     }));
-  };
+  }
 
-  // Common words config
-  const handleCommonLenOptionChange = (
-    val: AppConfig["common"]["lenOption"],
-  ) => {
+  function handleCommonLenOptionChange(val: AppConfig["common"]["lenOption"]) {
     updateConfig((cfg) => ({
       ...cfg,
       common: { ...cfg.common, lenOption: val },
     }));
-  };
-
-  const handleCommonLenCustomChange = (val: string) => {
+  }
+  function handleCommonLenCustomChange(val: string) {
+    const n = Number(val) || 0;
     updateConfig((cfg) => ({
       ...cfg,
-      common: { ...cfg.common, customLength: val },
+      common: { ...cfg.common, customLength: n },
     }));
-  };
+  }
 
-  // Paragraph config
-  const handleParagraphChange = (text: string) => {
+  function handleParagraphChange(text: string) {
     updateConfig((cfg) => ({
       ...cfg,
       paragraph: { ...cfg.paragraph, text },
     }));
-  };
+  }
 
-  // Course config
-  const handleCourseLessonChange = (lessonId: string) => {
+  function handleCourseLessonChange(lessonId: string) {
     updateConfig((cfg) => ({
       ...cfg,
       course: { ...cfg.course, lessonId },
     }));
-  };
+  }
 
   function getLetterLength(): number {
     const { lenOption, customLength } = config.letters;
@@ -431,6 +438,17 @@ const App: React.FC = () => {
         }
       }
 
+      // If the lesson has 'keys' and pre-lesson not yet done -> open FamiliarizeModal
+      if (lesson.keys && lesson.keys.length && !preLessonDoneMap[lesson.id]) {
+        // show familiarize modal and exit: once user finishes it will call onStartLesson -> prepareTest again
+        setShowFamiliarize(true);
+        setStatusMsg("Complete pre-lesson drill or skip to start the lesson.");
+        setStatusError(false);
+        // do not set currentText now; the modal will call back to start the test.
+        return;
+      }
+
+      // otherwise choose a text
       const tIndex = Math.floor(Math.random() * lesson.texts.length);
       text = lesson.texts[tIndex];
     }
@@ -467,6 +485,19 @@ const App: React.FC = () => {
     }
   }, [stage]);
 
+  function resetTest() {
+    if (!currentText) return;
+    setTypedText("");
+    if (hiddenInputRef.current) hiddenInputRef.current.value = "";
+    setStage("prestart");
+    setShowResult(false);
+    setResultStats(null);
+    setTestStartTime(null);
+    hasRecordedResultRef.current = false;
+    setStatusMsg("Press any key to begin the test.");
+    setStatusError(false);
+  }
+
   function finishTest(inputText: string) {
     if (stage !== "running") return;
     if (hasRecordedResultRef.current) return;
@@ -478,8 +509,20 @@ const App: React.FC = () => {
 
     const stats = calculateTypingMetrics(currentText, inputText, durationMs);
     setResultStats(stats);
-    setShowResult(true);
+    setShowResult(false);
 
+    // compute lesson score + eligibility
+    const computed = computeLessonScore(stats);
+    const adv = canAdvanceLesson(stats, computed);
+
+    setLessonResult({
+      open: true,
+      stats,
+      computed,
+      canAdvance: adv.allowed,
+    });
+
+    // update per-mode progress (runs + best)
     updateProgress((prev) => {
       const modes = { ...prev.modes };
       const lessonsProg = { ...prev.lessons };
@@ -490,6 +533,7 @@ const App: React.FC = () => {
       if (stats.accuracy > mm.bestAcc) mm.bestAcc = stats.accuracy;
       modes[currentMode] = mm;
 
+      // per-lesson stats only for course mode
       if (currentMode === "course") {
         const lesson = currentLesson;
         const lp = lessonsProg[lesson.id] || {
@@ -635,26 +679,19 @@ const App: React.FC = () => {
     }
   }
 
-  // Reset current test but keep mode & text
-  function resetTest() {
-    if (!currentText) return;
-    setTypedText("");
-    if (hiddenInputRef.current) {
-      hiddenInputRef.current.value = "";
-    }
-    setStage("prestart");
-    setShowResult(false);
-    setResultStats(null);
-    setTestStartTime(null);
-    hasRecordedResultRef.current = false;
-    setStatusMsg("Press any key to begin the test.");
-    setStatusError(false);
-  }
-
   // Global keydown: Esc reset test, Enter on result, backspace prevention, start from prestart
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Enter on result overlay → repeat test
+      // Enter on lesson result overlay → practice again
+      if (lessonResult.open && e.key === "Enter") {
+        e.preventDefault();
+        // Retry same lesson
+        setLessonResult({ open: false });
+        resetTest();
+        return;
+      }
+
+      // Enter on finished ResultOverlay triggers prepareTest (existing overlay)
       if (showResult && e.key === "Enter") {
         e.preventDefault();
         prepareTest();
@@ -702,12 +739,18 @@ const App: React.FC = () => {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, currentText, config.ui.allowBackspace, startRunning, showResult]);
+  }, [
+    stage,
+    currentText,
+    config.ui.allowBackspace,
+    startRunning,
+    showResult,
+    lessonResult.open,
+  ]);
 
+  // regenerate text when mode or config changes (but not when mode modal is open)
   useEffect(() => {
     if (showModeModal) return;
-    if (!currentMode) return;
     prepareTest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -718,17 +761,79 @@ const App: React.FC = () => {
     config.course,
   ]);
 
-  // Mode selection: from cards modal
+  // When user selects mode from modal
   const handleModeCardSelect = (modeId: AppConfig["mode"]) => {
     handleModeChange(modeId);
     setShowModeModal(false);
     setStatusMsg("Press any key to begin the test.");
     setStatusError(false);
+    // effect will generate test
   };
 
-  // Clicking mode name in header → reopen mode modal
-  const handleHeaderModeClick = () => {
-    setShowModeModal(true);
+  // Advance handler used by LessonResultModal
+  const handleAdvanceFromLesson = () => {
+    const lr = lessonResult;
+    if (!lr.open || !lr.stats || !lr.computed) {
+      setLessonResult({ open: false });
+      return;
+    }
+
+    // update lesson progress (mark best) — guard lr.stats
+    updateProgress((prev) => {
+      const lessons = { ...prev.lessons };
+      const lp = lessons[currentLesson.id] || {
+        runs: 0,
+        bestWpm: 0,
+        bestAcc: 0,
+        lastTime: null as string | null,
+      };
+
+      lp.runs = (lp.runs || 0) + 1;
+
+      // safe access
+      const stats = lr.stats;
+      if (stats) {
+        if (stats.wpm > lp.bestWpm) lp.bestWpm = stats.wpm;
+        if (stats.accuracy > lp.bestAcc) lp.bestAcc = stats.accuracy;
+      }
+
+      lp.lastTime = new Date().toISOString();
+      lessons[currentLesson.id] = lp;
+      return { ...prev, lessons };
+    });
+
+    // unlock / move to next lesson if exists
+    const idx = COURSE_LESSONS.lessons.findIndex(
+      (l) => l.id === currentLesson.id,
+    );
+    if (idx >= 0 && idx < COURSE_LESSONS.lessons.length - 1) {
+      const nextLesson = COURSE_LESSONS.lessons[idx + 1];
+      updateConfig((cfg) => ({
+        ...cfg,
+        course: { ...cfg.course, lessonId: nextLesson.id },
+      }));
+    }
+
+    // close modal & start next lesson text
+    setLessonResult({ open: false });
+    setTimeout(() => {
+      prepareTest();
+    }, 50);
+  };
+
+  const handleRetryFromLesson = () => {
+    setLessonResult({ open: false });
+    // reset typed text & stage
+    resetTest();
+  };
+
+  const handleReviewFromLesson = () => {
+    // open detailed overlay (reuse existing ResultOverlay with stats)
+    if (lessonResult.stats) {
+      setResultStats(lessonResult.stats);
+      setShowResult(true);
+    }
+    setLessonResult({ open: false });
   };
 
   return (
@@ -737,12 +842,12 @@ const App: React.FC = () => {
         <ModeHeader
           appName="Typing Master"
           selectedModeLabel={prettyModeName(currentMode)}
-          onSelectedModeClick={handleHeaderModeClick}
+          onSelectedModeClick={() => setShowModeModal(true)}
           onOpenSettings={() => setShowSettingsModal(true)}
           onOpenConfig={() => setShowConfigModal(true)}
         />
 
-        {/* Typing area is always visible */}
+        {/* Typing area always visible */}
         <main className="mt-6 flex flex-1 items-center justify-center">
           <TypingArea
             currentText={currentText}
@@ -754,17 +859,19 @@ const App: React.FC = () => {
             onAreaClick={handleTypingAreaClick}
             graphemeInfos={graphemeInfos}
             currentCharIndex={currentCharIndex}
-            fontFamily={config.ui.fontFamily}
-            fontSize={config.ui.fontSize}
+            fontFamily={config.ui.fontFamily ?? "default"}
+            fontSize={config.ui.fontSize ?? "text-lg"}
           />
         </main>
 
         <StatusBar message={statusMsg} isError={statusError} />
 
+        {/* keyboard */}
         {config.ui.showKeyboard && stage !== "config" && currentText && (
           <KeyboardLayout fingerInfo={fingerInfo || undefined} />
         )}
 
+        {/* classic result overlay (keeps present for compatibility) */}
         <ResultOverlay
           show={showResult}
           stats={resultStats}
@@ -779,7 +886,7 @@ const App: React.FC = () => {
         </footer>
       </div>
 
-      {/* Mode selection modal */}
+      {/* MODE picker modal */}
       <ModeSelectModal
         open={showModeModal}
         onClose={() => setShowModeModal(false)}
@@ -810,8 +917,8 @@ const App: React.FC = () => {
         onToggleTheme={() =>
           setTheme((prev) => (prev === "dark" ? "light" : "dark"))
         }
-        fontFamily={config.ui.fontFamily}
-        fontSize={config.ui.fontSize}
+        fontFamily={config.ui.fontFamily ?? "default"}
+        fontSize={config.ui.fontSize ?? "text-lg"}
         onChangeFontFamily={(value) =>
           updateConfig((cfg) => ({
             ...cfg,
@@ -824,6 +931,37 @@ const App: React.FC = () => {
             ui: { ...cfg.ui, fontSize: value },
           }))
         }
+      />
+
+      <FamiliarizeModal
+        open={showFamiliarize}
+        onClose={() => {
+          setShowFamiliarize(false);
+          setFamiliarizeTarget(null);
+        }}
+        lessonTitle={(() => {
+          if (!familiarizeTarget) return currentLesson.title;
+          const t = COURSE_LESSONS.lessons.find(
+            (l) => l.id === familiarizeTarget,
+          );
+          return t ? t.title : currentLesson.title;
+        })()}
+        keys={(() => {
+          if (!familiarizeTarget) return currentLesson.keys ?? [];
+          const t = COURSE_LESSONS.lessons.find(
+            (l) => l.id === familiarizeTarget,
+          );
+          return t ? (t.keys ?? []) : (currentLesson.keys ?? []);
+        })()}
+        onStartLesson={() => {
+          // mark the pre-lesson as done for this lessonId
+          const id = familiarizeTarget ?? currentLesson.id;
+          setPreLessonDoneMap((prev) => ({ ...prev, [id]: true }));
+          setShowFamiliarize(false);
+          setFamiliarizeTarget(null);
+          // start the lesson
+          setTimeout(() => prepareTest(), 30);
+        }}
       />
 
       {/* Configuration modal */}
@@ -845,7 +983,25 @@ const App: React.FC = () => {
         onCommonLenChange={handleCommonLenOptionChange}
         onCommonCustomChange={handleCommonLenCustomChange}
         onCourseLessonChange={handleCourseLessonChange}
+        onFamiliarize={(lessonId?: string) => {
+          setFamiliarizeTarget(lessonId ?? currentLesson.id);
+          setShowFamiliarize(true);
+        }}
       />
+
+      {lessonResult.open && lessonResult.stats && lessonResult.computed && (
+        <LessonResultModal
+          open={true}
+          onClose={() => setLessonResult({ open: false })}
+          stats={lessonResult.stats}
+          score={lessonResult.computed.score}
+          parts={lessonResult.computed.parts}
+          canAdvance={!!lessonResult.canAdvance}
+          onAdvance={handleAdvanceFromLesson}
+          onRetry={handleRetryFromLesson}
+          onReview={handleReviewFromLesson}
+        />
+      )}
     </div>
   );
 };

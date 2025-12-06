@@ -1,59 +1,93 @@
 export type Stage = "config" | "prestart" | "running" | "finished";
 
-export interface CourseLesson {
-    id: string;
-    category: string;
-    title: string;
-    desc: string;
-    texts: string[];
-}
-
-export interface InscriptEntry {
-    key: string;
-    shift: boolean;
-}
-
-export interface ProgressMode {
+/** Per-mode progress */
+export type ProgressMode = {
     runs: number;
     bestWpm: number;
     bestAcc: number;
-}
+};
 
-export interface ProgressLesson extends ProgressMode {
+/** Per-lesson progress (export name used across components) */
+export type LessonProgress = {
+    runs: number;
+    bestWpm: number;
+    bestAcc: number;
     lastTime: string | null;
-}
+};
+// alias to satisfy other imports that expect ProgressLesson
+export type ProgressLesson = LessonProgress;
 
-export interface AppConfig {
+/** App-wide progress snapshot */
+export type AppProgress = {
+    modes: {
+        [mode in AppConfig["mode"]]?: ProgressMode;
+    };
+    lessons: {
+        [lessonId: string]: LessonProgress;
+    };
+};
+
+/** UI related config */
+export type UiConfig = {
+    showKeyboard: boolean;
+    allowBackspace: boolean;
+    fontFamily?: string;
+    fontSize?: string;
+};
+
+/** Letters mode configuration */
+export type LettersConfig = {
+    selectedLetters: string[] | null;
+    lenOption: "50" | "100" | "200" | "custom";
+    customLength: number;
+};
+
+/** Paragraph mode config */
+export type ParagraphConfig = {
+    text: string;
+};
+
+/** Common words config */
+export type CommonConfig = {
+    lenOption: "30" | "60" | "120" | "custom";
+    customLength: number;
+};
+
+/** Course config */
+export type CourseConfig = {
+    lessonId: string | null;
+};
+
+/** App-wide configuration */
+export type AppConfig = {
     mode: "letters" | "paragraph" | "common" | "course";
-    letters: {
-        selectedLetters: string[] | null;
-        lenOption: "50" | "100" | "200" | "custom";
-        customLength: number | string;
-    };
-    paragraph: {
-        text: string;
-    };
-    common: {
-        lenOption: "30" | "60" | "120" | "custom";
-        customLength: number | string;
-    };
-    course: {
-        lessonId: string | null;
-    };
-    ui: {
-        allowBackspace: boolean;
-        showKeyboard: boolean;
-        fontFamily: string;
-        fontSize: string;
-    };
-}
+    letters: LettersConfig;
+    paragraph: ParagraphConfig;
+    common: CommonConfig;
+    course: CourseConfig;
+    ui: UiConfig;
+};
 
-export interface AppProgress {
-    modes: Record<string, ProgressMode>;
-    lessons: Record<string, ProgressLesson>;
-}
+/** A course lesson shape loaded from course.json */
+export type CourseLesson = {
+    id: string;
+    title: string;
+    texts: string[];
+    // optional: graphemes / keys used in familiarize drills
+    keys?: string[];
+    // optional: per-lesson thresholds for advancement
+    thresholds?: {
+        advanceScore?: number;
+        minAccuracy?: number;
+        maxMissing?: number;
+    };
+    // optional UI fields used in some components
+    category?: string;
+    desc?: string;
+};
 
-export interface AppState {
+/** Full application state saved to localStorage */
+export type AppState = {
     config: AppConfig;
     progress: AppProgress;
-}
+};
