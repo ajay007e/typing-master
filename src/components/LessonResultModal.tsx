@@ -1,3 +1,4 @@
+// src/components/LessonResultModal.tsx
 import React from "react";
 import type { TypingMetrics } from "../utils/metrics";
 
@@ -153,4 +154,4 @@ const LessonResultModal: React.FC<LessonResultModalProps> = ({
   );
 };
 
-export default LessonResultModal;
+export default React.memo(LessonResultModal);

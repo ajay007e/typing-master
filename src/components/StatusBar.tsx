@@ -1,3 +1,4 @@
+// src/components/StatusBar.tsx
 import React from "react";
 
 interface StatusBarProps {
@@ -16,4 +17,4 @@ const StatusBar: React.FC<StatusBarProps> = ({ message, isError }) => (
   </div>
 );
 
-export default StatusBar;
+export default React.memo(StatusBar);

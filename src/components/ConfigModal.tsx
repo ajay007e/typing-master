@@ -1,11 +1,13 @@
 // src/components/ConfigModal.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import type {
   AppConfig,
   AppProgress,
   CourseLesson,
   LessonProgress,
 } from "../utils/types";
+import LettersGrid from "./ui/LettersGrid";
+import RadioButtons from "./ui/RadioButtons";
 
 interface ConfigModalProps {
   open: boolean;
@@ -36,6 +38,46 @@ interface ConfigModalProps {
   onFamiliarize?: (lessonId?: string) => void;
 }
 
+const WPM_UNLOCK_DEFAULT = 25;
+const ACC_UNLOCK_DEFAULT = 90;
+
+function computeLessonLockInfo(
+  lessons: CourseLesson[],
+  progress: AppProgress,
+  idx: number,
+) {
+  if (idx <= 0) {
+    return {
+      unlocked: true,
+      prevLesson: null as CourseLesson | null,
+      reqWpm: WPM_UNLOCK_DEFAULT,
+      reqAcc: ACC_UNLOCK_DEFAULT,
+      prevProg: null as LessonProgress | null,
+    };
+  }
+
+  const prev = lessons[idx - 1];
+  const prevProg = progress.lessons?.[prev.id] ?? null;
+
+  const th = lessons[idx].thresholds;
+  const reqWpm = th?.advanceScore ?? WPM_UNLOCK_DEFAULT;
+  const reqAcc = th?.minAccuracy ?? ACC_UNLOCK_DEFAULT;
+
+  const unlocked = !!(
+    prevProg &&
+    prevProg.bestWpm >= reqWpm &&
+    prevProg.bestAcc >= reqAcc
+  );
+
+  return {
+    unlocked,
+    prevLesson: prev,
+    reqWpm,
+    reqAcc,
+    prevProg,
+  };
+}
+
 const ConfigModal: React.FC<ConfigModalProps> = ({
   open,
   onClose,
@@ -58,51 +100,12 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 }) => {
   if (!open) return null;
 
-  // Helper: compute whether lesson at index i is unlocked, and the unlock conditions
-  // consistent return shape for lock info
-  const isLessonUnlocked = (i: number) => {
-    // default thresholds
-    const WPM_UNLOCK = 25;
-    const ACC_UNLOCK = 90;
+  const selectedLettersSet = useMemo(
+    () => new Set(config.letters.selectedLetters ?? []),
+    [config.letters.selectedLetters],
+  );
 
-    if (i <= 0) {
-      // first lesson — unlocked by default
-      return {
-        unlocked: true,
-        prevLesson: null as CourseLesson | null,
-        reqWpm: WPM_UNLOCK,
-        reqAcc: ACC_UNLOCK,
-        prevProg: null as LessonProgress | null,
-      };
-    }
-
-    const prev = lessons[i - 1];
-    const prevProg = progress.lessons?.[prev.id] ?? null;
-
-    // allow per-lesson override
-    const th = lessons[i].thresholds;
-    const reqWpm = th?.advanceScore ?? WPM_UNLOCK;
-    const reqAcc = th?.minAccuracy ?? ACC_UNLOCK;
-
-    const unlocked = !!(
-      prevProg &&
-      prevProg.bestWpm >= reqWpm &&
-      prevProg.bestAcc >= reqAcc
-    );
-
-    return {
-      unlocked,
-      prevLesson: prev,
-      reqWpm,
-      reqAcc,
-      prevProg,
-    };
-  };
-
-  /* ---------- RENDER BLOCKS ---------- */
-
-  const renderLettersConfig = () => {
-    const selected = new Set(config.letters.selectedLetters ?? []);
+  const LettersConfig: React.FC = () => {
     const lenOption = config.letters.lenOption;
     const custom = config.letters.customLength;
 
@@ -129,55 +132,36 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-8 gap-2">
-          {letters.map((ch) => (
-            <button
-              key={ch}
-              type="button"
-              onClick={() => onToggleLetter(ch)}
-              className={[
-                "rounded-md px-2 py-1 text-base transition",
-                selected.has(ch)
-                  ? "bg-emerald-600 text-black"
-                  : "bg-slate-900 text-slate-200 hover:bg-slate-800",
-              ].join(" ")}
-            >
-              {ch}
-            </button>
-          ))}
-        </div>
+        <LettersGrid
+          letters={letters}
+          selected={selectedLettersSet}
+          onToggleLetter={onToggleLetter}
+        />
 
         <div className="pt-3 border-t border-slate-800 flex items-center gap-3 text-xs">
           <span className="text-slate-400">Length</span>
 
-          {["50", "100", "200"].map((val) => (
-            <button
-              key={val}
-              onClick={() =>
-                onLenOptionChange(val as AppConfig["letters"]["lenOption"])
+          <div className="flex items-center gap-2">
+            <RadioButtons
+              options={["50", "100", "200"]}
+              value={lenOption}
+              onChange={(v) =>
+                onLenOptionChange(v as AppConfig["letters"]["lenOption"])
               }
+            />
+
+            <button
+              onClick={() => onLenOptionChange("custom")}
               className={[
                 "rounded-full px-2 py-0.5",
-                lenOption === val
+                lenOption === "custom"
                   ? "bg-emerald-500 text-black"
                   : "bg-slate-900 text-slate-300 hover:bg-slate-800",
               ].join(" ")}
             >
-              {val}
+              Custom
             </button>
-          ))}
-
-          <button
-            onClick={() => onLenOptionChange("custom")}
-            className={[
-              "rounded-full px-2 py-0.5",
-              lenOption === "custom"
-                ? "bg-emerald-500 text-black"
-                : "bg-slate-900 text-slate-300 hover:bg-slate-800",
-            ].join(" ")}
-          >
-            Custom
-          </button>
+          </div>
 
           {lenOption === "custom" && (
             <input
@@ -194,7 +178,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
     );
   };
 
-  const renderParagraphConfig = () => (
+  const ParagraphConfig: React.FC = () => (
     <div className="space-y-2">
       <div className="text-xs font-semibold text-slate-200">
         Custom paragraph
@@ -208,7 +192,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
     </div>
   );
 
-  const renderCommonConfig = () => {
+  const CommonConfig: React.FC = () => {
     const lenOption = config.common.lenOption;
     const custom = config.common.customLength;
 
@@ -222,34 +206,26 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
         <div className="flex items-center gap-2 text-xs">
           <span className="text-slate-400">Words</span>
 
-          {["30", "60", "120"].map((val) => (
-            <button
-              key={val}
-              onClick={() =>
-                onCommonLenChange(val as AppConfig["common"]["lenOption"])
+          <div className="flex items-center gap-2">
+            <RadioButtons
+              options={["30", "60", "120"]}
+              value={lenOption}
+              onChange={(v) =>
+                onCommonLenChange(v as AppConfig["common"]["lenOption"])
               }
+            />
+            <button
+              onClick={() => onCommonLenChange("custom")}
               className={[
                 "rounded-full px-2 py-0.5",
-                lenOption === val
+                lenOption === "custom"
                   ? "bg-emerald-500 text-black"
                   : "bg-slate-900 text-slate-300 hover:bg-slate-800",
               ].join(" ")}
             >
-              {val}
+              Custom
             </button>
-          ))}
-
-          <button
-            onClick={() => onCommonLenChange("custom")}
-            className={[
-              "rounded-full px-2 py-0.5",
-              lenOption === "custom"
-                ? "bg-emerald-500 text-black"
-                : "bg-slate-900 text-slate-300 hover:bg-slate-800",
-            ].join(" ")}
-          >
-            Custom
-          </button>
+          </div>
 
           {lenOption === "custom" && (
             <input
@@ -266,7 +242,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
     );
   };
 
-  const renderCourseConfig = () => {
+  const CourseConfig: React.FC = () => {
     const lessonProgress = progress.lessons ?? {};
 
     return (
@@ -308,10 +284,9 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
         <div className="space-y-2">
           {lessons.map((l, idx) => {
             const lp: LessonProgress | undefined = lessonProgress[l.id];
-            const lockInfo = isLessonUnlocked(idx);
+            const lockInfo = computeLessonLockInfo(lessons, progress, idx);
             const unlocked = lockInfo.unlocked;
 
-            // lock reason lines
             const lockReason =
               !unlocked && lockInfo.prevLesson
                 ? `Complete “${lockInfo.prevLesson.title}” with at least ${lockInfo.reqWpm} WPM and ${lockInfo.reqAcc}% accuracy`
@@ -351,7 +326,6 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Familiarize button available only when unlocked and keys exist */}
                   {l.keys && l.keys.length > 0 && onFamiliarize && (
                     <button
                       onClick={() => onFamiliarize(l.id)}
@@ -388,8 +362,6 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
     );
   };
 
-  /* ---------- MODAL WRAPPER ---------- */
-
   return (
     <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div
@@ -424,10 +396,10 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 
         {/* SCROLLABLE CONTENT */}
         <div className="px-5 py-4 overflow-y-auto custom-scrollbar max-h-[calc(85vh-70px)]">
-          {mode === "letters" && renderLettersConfig()}
-          {mode === "paragraph" && renderParagraphConfig()}
-          {mode === "common" && renderCommonConfig()}
-          {mode === "course" && renderCourseConfig()}
+          {mode === "letters" && <LettersConfig />}
+          {mode === "paragraph" && <ParagraphConfig />}
+          {mode === "common" && <CommonConfig />}
+          {mode === "course" && <CourseConfig />}
         </div>
 
         {/* FOOTER */}
@@ -444,4 +416,4 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
   );
 };
 
-export default ConfigModal;
+export default React.memo(ConfigModal);
