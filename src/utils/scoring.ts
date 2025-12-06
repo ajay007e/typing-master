@@ -12,8 +12,8 @@ import type { TypingMetrics } from "./metrics";
  * Returns object { score, parts } for UI breakdown.
  */
 
-const WPM_CAP = 100; // anything above caps to avoid domination
-const RAW_WPM_CAP = 120;
+const WPM_CAP = 50; // anything above caps to avoid domination
+const RAW_WPM_CAP = 65;
 
 export function clamp01(v: number) {
     return Math.max(0, Math.min(1, v));
@@ -45,8 +45,8 @@ export function computeLessonScore(
     const caps = opts?.caps ?? { wpm: WPM_CAP, rawWpm: RAW_WPM_CAP };
     const missingCap = opts?.missingCap ?? 10;
 
-    const wpm01 = normalizeTo01(stats.wpm, caps.wpm ?? 100);
-    const raw01 = normalizeTo01(stats.rawWpm, caps.rawWpm ?? 120);
+    const wpm01 = normalizeTo01(stats.wpm, caps.wpm ?? WPM_CAP);
+    const raw01 = normalizeTo01(stats.rawWpm, caps.rawWpm ?? RAW_WPM_CAP);
     const acc01 = clamp01(stats.accuracy / 100);
 
     // completeness score: fewer missing placeholders is better

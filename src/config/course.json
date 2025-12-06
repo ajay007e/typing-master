@@ -1,542 +1,1082 @@
 {
     "lessons": [
         {
-            "id": "vowels-1",
-            "category": "Vowels",
-            "title": "Vowels – Part 1 (അ, ആ)",
-            "desc": "First basic vowels. Say each letter aloud, then type slowly.",
+            "id": "vowels-1-warmup",
+            "title": "Warmup: Vowels – Part 1 (അ, ആ)",
             "texts": [
-                "അ അ അ",
-                "ആ ആ ആ",
-                "അ ആ അ ആ",
-                "അ ആ അ ആ അ"
-            ]
+                "അ അ അ ആ ആ ആ അ ആ അ ആ അഅ ആആ അആ അആ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Vowels",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
+        },
+        {
+            "id": "vowels-1",
+            "title": "Vowels – Part 1 (അ, ആ)",
+            "texts": [
+                "അഅഅഅ ആആആആ അആഅആ അഅഅആ ആആആഅ അആഅഅ ആഅആആ അഅആആ ആആഅഅ"
+            ],
+            "ui_mode": "practice",
+            "category": "Vowels",
+            "desc": "First basic vowels. Say each letter aloud, then type slowly.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "vowels-2-warmup",
+            "title": "Warmup: Vowels – Part 2 (ഇ, ഈ)",
+            "texts": [
+                "ഇ ഇ ഇ ഈ ഈ ഈ ഇ ഈ ഇ ഈ ഇഇ ഈഈ ഇഈ ഇഈ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Vowels",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "vowels-2",
-            "category": "Vowels",
-            "title": "Vowels – Part 2 (ഇ, ഈ)",
-            "desc": "Short and long i sounds. Focus on visual difference and sound.",
+            "title": "Vowels – Part 2 (ഇ, EEG)",
             "texts": [
-                "ഇ ഇ ഇ",
-                "ഈ ഈ ഈ",
-                "ഇ ഈ ഇ ഈ",
-                "ഇ ഇ ഈ ഈ"
-            ]
+                "ഇഇഇഇ ഈഈഈഈ ഇഈഇഈ ഇഇഇഈ ഈഈഈഇ ഇഈഇഇ ഈഇഈഈ ഇഇഈഈ ഈഈഇഇ"
+            ],
+            "ui_mode": "practice",
+            "category": "Vowels",
+            "desc": "Short and long i sounds. Focus on visual difference and sound.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "vowels-3-warmup",
+            "title": "Warmup: Vowels – Part 3 (ഉ, ഊ)",
+            "texts": [
+                "ഉ ഉ ഉ",
+                "ഊ ഊ ഊ",
+                "ഉ ഊ ഉ ഊ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Vowels",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "vowels-3",
-            "category": "Vowels",
             "title": "Vowels – Part 3 (ഉ, ഊ)",
-            "desc": "Short and long u sounds. Type each line multiple times.",
             "texts": [
                 "ഉ ഉ ഉ",
                 "ഊ ഊ ഊ",
                 "ഉ ഊ ഉ ഊ",
                 "ഉ ഉ ഊ ഊ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Vowels",
+            "desc": "Short and long u sounds. Type each line multiple times.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "vowels-4",
-            "category": "Vowels",
             "title": "Vowels – Part 4 (ഋ, എ, ഏ)",
-            "desc": "Practice ഋ with front vowels എ and ഏ.",
             "texts": [
                 "ഋ ഋ ഋ",
                 "എ എ എ",
                 "ഏ ഏ ഏ",
                 "ഋ എ ഏ ഋ എ ഏ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Vowels",
+            "desc": "Practice ഋ with front vowels എ and ഏ.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "vowels-5",
-            "category": "Vowels",
             "title": "Vowels – Part 5 (ഐ, ഒ, ഓ)",
-            "desc": "Diphthong ഐ and rounded vowels ഒ, ഓ.",
             "texts": [
                 "ഐ ഐ ഐ",
                 "ഒ ഒ ഒ",
                 "ഓ ഓ ഓ",
                 "ഐ ഒ ഓ ഐ ഒ ഓ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Vowels",
+            "desc": "Diphthong ഐ and rounded vowels ഒ, ഓ.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "vowels-6",
-            "category": "Vowels",
             "title": "Vowels – Part 6 (ഔ, അം, അഃ)",
-            "desc": "Vowel ഔ with anusvāram (അം) and visargam (അഃ).",
             "texts": [
                 "ഔ ഔ ഔ",
                 "അം അം അം",
                 "അഃ അഃ അഃ",
                 "ഔ അം അഃ ഔ അം അഃ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Vowels",
+            "desc": "Vowel ഔ with anusvāram (അം) and visargam (അഃ).",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-1-ka-varga-warmup",
+            "title": "Warmup: ക വർഗം (ka group)",
+            "texts": [
+                "ക ഖ ഗ",
+                "ക ക ഖ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-1-ka-varga",
-            "category": "Consonants",
             "title": "ക വർഗം (ka group)",
-            "desc": "Practice ka-varga consonants together.",
             "texts": [
                 "ക ഖ ഗ ഘ ങ",
                 "ക ക ഖ ഖ",
                 "ഗ ഗ ഘ ഘ",
                 "ക ഖ ഗ ഘ ങ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Practice ka-varga consonants together.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-2-cha-varga-warmup",
+            "title": "Warmup: ച വർഗം (cha group)",
+            "texts": [
+                "ച ഛ ജ",
+                "ച ച ഛ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-2-cha-varga",
-            "category": "Consonants",
             "title": "ച വർഗം (cha group)",
-            "desc": "Practice cha-varga consonants slowly.",
             "texts": [
                 "ച ഛ ജ ഝ ഞ",
                 "ച ച ഛ ഛ",
                 "ജ ജ ഝ ഝ",
                 "ച ഛ ജ ഝ ഞ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Practice cha-varga consonants slowly.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-3-tta-varga-warmup",
+            "title": "Warmup: ട വർഗം (ṭa group)",
+            "texts": [
+                "ട ഠ ഡ",
+                "ട ട ഠ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-3-tta-varga",
-            "category": "Consonants",
             "title": "ട വർഗം (ṭa group)",
-            "desc": "Retroflex consonants. Pay attention to tongue position.",
             "texts": [
                 "ട ഠ ഡ ഢ ണ",
                 "ട ട ഠ ഠ",
                 "ഡ ഡ ഢ ഢ",
                 "ട ഠ ഡ ഢ ണ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Retroflex consonants. Pay attention to tongue position.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-4-ta-varga-warmup",
+            "title": "Warmup: ത വർഗം (ta group)",
+            "texts": [
+                "ത ഥ വിദ",
+                "ത ത ഥ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-4-ta-varga",
-            "category": "Consonants",
             "title": "ത വർഗം (ta group)",
-            "desc": "Dental consonants ത to ന.",
             "texts": [
                 "ത ഥ ദ ധ ന",
                 "ത ത ഥ ഥ",
                 "ദ ദ ധ ധ",
                 "ത ഥ ദ ധ ന"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Dental consonants ത to ന.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-5-pa-varga-warmup",
+            "title": "Warmup: പ വർഗം (pa group)",
+            "texts": [
+                "പ ഫ ബ",
+                "പ പ ഫ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-5-pa-varga",
-            "category": "Consonants",
             "title": "പ വർഗം (pa group)",
-            "desc": "Labial consonants from പ to മ.",
             "texts": [
                 "പ ഫ ബ ഭ മ",
                 "പ പ ഫ ഫ",
                 "ബ ബ ഭ ഭ",
                 "പ ഫ ബ ഭ മ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Labial consonants from പ to മ.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-6-ya-row-warmup",
+            "title": "Warmup: യ ര ല വ",
+            "texts": [
+                "യ ര ല",
+                "യ യ ര"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-6-ya-row",
-            "category": "Consonants",
             "title": "യ ര ല വ",
-            "desc": "Semi-vowels and liquids.",
             "texts": [
                 "യ ര ല വ",
                 "യ യ ര ര",
                 "ല ല വ വ",
                 "യ ര ല വ യ ര"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Semi-vowels and liquids.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-7-sha-row-warmup",
+            "title": "Warmup: ശ ഷ സ ഹ",
+            "texts": [
+                "ശ ഷ സ",
+                "ശ ശ ഷ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-7-sha-row",
-            "category": "Consonants",
             "title": "ശ ഷ സ ഹ",
-            "desc": "Sibilants and ഹ. Focus on different s-sounds.",
             "texts": [
                 "ശ ഷ സ ഹ",
                 "ശ ശ ഷ ഷ",
                 "സ സ ഹ ഹ",
                 "ശ ഷ സ ഹ ശ ഷ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Sibilants and ഹ. Focus on different s-sounds.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "cons-8-la-row-warmup",
+            "title": "Warmup: ള ഴ റ",
+            "texts": [
+                "ള ഴ റ",
+                "ള ള ഴ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "cons-8-la-row",
-            "category": "Consonants",
             "title": "ള ഴ റ",
-            "desc": "Retroflex ല/റ sounds. Type slowly first.",
             "texts": [
                 "ള ഴ റ",
                 "ള ള ഴ ഴ",
                 "റ റ ള ഴ റ",
                 "ള ഴ റ ള ഴ റ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants",
+            "desc": "Retroflex වල/റ sounds. Type slowly first.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
+        },
+        {
+            "id": "symbols-basic-ka-warmup",
+            "title": "Warmup: ക with vowel signs",
+            "texts": [
+                "ക കാ കി",
+                "കു കൂ കെ"
+            ],
+            "ui_mode": "familiarization",
+            "category": "Consonants + symbols (basic)",
+            "desc": "Warm-up session to familiarize with the letters before practice.",
+            "pass_criteria": {
+                "accuracy_percentage": "auto",
+                "wpm": "auto",
+                "type": "completed",
+                "minimum_score": "auto"
+            }
         },
         {
             "id": "symbols-basic-ka",
-            "category": "Consonants + symbols (basic)",
             "title": "ക with vowel signs",
-            "desc": "How vowel signs change the sound of ക.",
             "texts": [
                 "ക കാ കി കീ",
                 "കു കൂ കെ കേ",
                 "കൈ കൊ കോ കൌ",
                 "കം കഃ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (basic)",
+            "desc": "How vowel signs change the sound of ക.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-basic-cha",
-            "category": "Consonants + symbols (basic)",
             "title": "ച with vowel signs",
-            "desc": "Vowel combinations with ച.",
             "texts": [
                 "ച ചാ ചി ചീ",
                 "ചു ചൂ ചെ ചെേ",
                 "ചൈ ചൊ ചോ ചൌ",
                 "ചം ചഃ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (basic)",
+            "desc": "Vowel combinations with ച.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-basic-tta",
-            "category": "Consonants + symbols (basic)",
             "title": "ട with vowel signs",
-            "desc": "Practice ട with common vowel signs.",
             "texts": [
-                "ട ടാ ടി ടീ",
+                "ട ടാ ടി ทีม",
                 "ടു ടൂ ടെ ടേ",
                 "ടൈ ടൊ ടോ ടൌ",
                 "ടം ടഃ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (basic)",
+            "desc": "Practice ട with common vowel signs.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-basic-ta",
-            "category": "Consonants + symbols (basic)",
             "title": "ത with vowel signs",
-            "desc": "Practice ത with short and long vowels.",
             "texts": [
-                "ത താ തി തീ",
+                "ത താ തി ആവ",
                 "തു തൂ തെ തേ",
-                "തൈ തൊ തോ തൌ",
+                "തൈ തൊ തോ তൌ",
                 "തം തഃ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (basic)",
+            "desc": "Practice ത with short and long vowels.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-basic-pa",
-            "category": "Consonants + symbols (basic)",
             "title": "പ with vowel signs",
-            "desc": "Vowel combinations with പ.",
             "texts": [
                 "പ പാ പി പി",
                 "പു പൂ പെ പേ",
                 "പൈ പൊ പോ പൌ",
                 "പം പഃ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (basic)",
+            "desc": "Vowel combinations with പ.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-1",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 1",
-            "desc": "Mix ക, മ, ന with basic vowel signs.",
             "texts": [
                 "കാ മീ നു നെ",
                 "മാ നീ കു മേ",
-                "നാ മീ കി നൂ"
-            ]
+                "നാ മേ കി നൂ"
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Mix ക, മ, ന with basic vowel signs.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-2",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 2",
-            "desc": "Common patterns with ക, ത, ന.",
             "texts": [
                 "കീ താ നേ നി",
                 "തി നീ കൂ തേ",
-                "നാ തേ തി നീ"
-            ]
+                "നാ തോ തി നീ"
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Common patterns with ക, ത, ന.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-3",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 3",
-            "desc": "Practice പ, മ, വ with vowels.",
             "texts": [
                 "പാ മീ വു വേ",
                 "വീ മേ പു മൂ",
                 "മാ വാ പി വൂ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Practice പ, മ, വ with vowels.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-4",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 4",
-            "desc": "ധ, ഭ, ഗ with different vowel signs.",
             "texts": [
                 "ധാ ഗി ഭൂ ഭേ",
                 "ഗാ ധീ ഭു ഗൂ",
                 "ഭാ ഗേ ധു ഭീ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "ധ, ഭ, ഗ with different vowel signs.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-5",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 5",
-            "desc": "Soft combinations for smoother typing.",
             "texts": [
                 "ലീ മേ നു രേ",
                 "യാ ലു നേ രീ",
                 "നാ രേ ലി മേ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Soft combinations for smoother typing.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-6",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 6",
-            "desc": "Use of ഐ and ഔ in common patterns.",
             "texts": [
                 "കൈ നായ തൗ മൈ",
                 "വൈ കൈ പൗ നൈ",
                 "കൈ തൈ മൈ നൈ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Use of ഐ and ഔ in common patterns.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-7",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 7",
-            "desc": "Practice anusvāram and visargam in words.",
             "texts": [
-                "സം കം നം മം",
+                "സം кം നം മം",
                 "കഃ തഃ മഃ നഃ",
-                "സം കം തം നം"
-            ]
+                "സം кം തം നം"
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Practice anusvāram and visargam in words.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "symbols-mixed-8",
-            "category": "Consonants + symbols (mixed)",
             "title": "Mixed – set 8",
-            "desc": "Revision mix of earlier patterns.",
             "texts": [
                 "കാ മീ നു വേ",
                 "പൈ നോ തൂ മേ",
                 "മാ തി നോ പു"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Consonants + symbols (mixed)",
+            "desc": "Revision mix of earlier patterns.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "special-cons-1",
-            "category": "Special consonants",
             "title": "Special consonants – Part 1",
-            "desc": "Introduce special consonants: ണ്, ന്, ൾ, ൽ, ർ.",
             "texts": [
                 "ൺ ൻ ൾ ൽ ർ",
                 "ൺ ൻ ൾ ൽ ർ",
                 "ൺ ൻ ൾ ൽ ർ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Special consonants",
+            "desc": "Introduce special consonants: ണ്, ന്, ൾ, ൽ, ർ.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "special-cons-2",
-            "category": "Special consonants",
             "title": "Special consonants – Part 2",
-            "desc": "Use special consonants inside simple words.",
             "texts": [
                 "വൺ നാൾ കാൽ മാൾ",
                 "താൽ കൺ വേൺ നാൾ",
                 "കൺ താൾ നാൾ കാൽ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Special consonants",
+            "desc": "Use special consonants inside simple words.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "words-simple-1",
-            "category": "Simple words",
             "title": "Family words",
-            "desc": "Short words about family.",
             "texts": [
                 "അമ്മ അച്ഛൻ മകൻ മകൾ",
                 "അപ്പൻ അമ്മായി ചേച്ചി ചേട്ടൻ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Simple words",
+            "desc": "Short words about family.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "words-simple-2",
-            "category": "Simple words",
             "title": "Self and others",
-            "desc": "Pronouns and simple reference words.",
             "texts": [
                 "ഞാൻ നീ നിങ്ങൾ അവൻ അവൾ",
                 "ഇതു അത് ഇവ അവ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Simple words",
+            "desc": "Pronouns and simple reference words.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "words-simple-3",
-            "category": "Simple words",
             "title": "Place and time",
-            "desc": "Basic place and time words.",
             "texts": [
                 "വീട് സ്കൂൾ ഓഫീസ്",
                 "ഇന്ന് നാളെ ഇപ്പോൾ പിന്നീട്"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Simple words",
+            "desc": "Basic place and time words.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "words-simple-4",
-            "category": "Simple words",
             "title": "Food and things",
-            "desc": "Common everyday words for things you use.",
             "texts": [
                 "വെള്ളം ചായ കാപ്പി",
                 "പുസ്തകം പേന ബാഗ് ഫോൺ"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Simple words",
+            "desc": "Common everyday words for things you use.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "words-simple-5",
-            "category": "Simple words",
             "title": "People and routine",
-            "desc": "Simple words about people and daily routine.",
             "texts": [
                 "സുഹൃത്ത് അധ്യാപകൻ വിദ്യാർത്ഥി",
                 "ജോലി സമയം യാത്ര"
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Simple words",
+            "desc": "Simple words about people and daily routine.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-simple-1",
-            "category": "Sentences – Simple",
             "title": "Simple sentences – 1",
-            "desc": "Very short, clear sentences.",
             "texts": [
-                "ഇന്ന് നല്ല ദിവസം ആണ്.",
+                "ഇന്ന് നല്ല ദിവസമാണ്.",
                 "എനിക്ക് മലയാളം ഇഷ്ടമാണ്."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Simple",
+            "desc": "Very short, clear sentences.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-simple-2",
-            "category": "Sentences – Simple",
             "title": "Simple sentences – 2",
-            "desc": "Use of present tense in daily life.",
             "texts": [
                 "അവൻ സ്കൂളിൽ പോകുന്നു.",
                 "ഞാൻ എല്ലാ ദിവസവും വായിക്കുന്നു."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Simple",
+            "desc": "Use of present tense in daily life.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-simple-3",
-            "category": "Sentences – Simple",
             "title": "Simple sentences – 3",
-            "desc": "More easy daily expressions.",
             "texts": [
                 "അവൾ അടുക്കളയിൽ പാചകം ചെയ്യുന്നു.",
                 "ആ കുട്ടി പാർക്കിൽ കളിക്കുന്നു."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Simple",
+            "desc": "More easy daily expressions.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-simple-4",
-            "category": "Sentences – Simple",
             "title": "Simple sentences – 4",
-            "desc": "Questions and answers.",
             "texts": [
                 "നിങ്ങൾ എവിടെയാണ് പോകുന്നത്?",
                 "ഞാൻ ഓഫീസിലേക്ക് പോകുന്നു."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Simple",
+            "desc": "Questions and answers.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-simple-5",
-            "category": "Sentences – Simple",
             "title": "Simple sentences – 5",
-            "desc": "Short statements to build confidence.",
             "texts": [
                 "ഇവിടെ വളരെ ശാന്തമാണ്.",
                 "എനിക്ക് പുസ്തകങ്ങൾ വായിക്കാൻ ഇഷ്ടമാണ്."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Simple",
+            "desc": "Short statements to build confidence.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-medium-1",
-            "category": "Sentences – Medium",
             "title": "Medium sentences – 1",
-            "desc": "Slightly longer sentences with more detail.",
             "texts": [
                 "നമ്മുടെ വീട്ടിന് മുന്നിൽ ഒരു വലിയ വൃക്ഷം ഉണ്ട്.",
                 "ഇന്ന് രാവിലെ ഞാൻ പാർക്കിൽ നടക്കാൻ പോയി."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Medium",
+            "desc": "Slightly longer sentences with more detail.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-medium-2",
-            "category": "Sentences – Medium",
             "title": "Medium sentences – 2",
-            "desc": "Sentences combining two actions.",
             "texts": [
                 "അവൻ ജോലി കഴിഞ്ഞ് വീട്ടിലേക്ക് മടങ്ങുന്നു.",
                 "അവൾ പഠിച്ചു കൊണ്ടിരിക്കുമ്പോൾ ഞാൻ സംഗീതം കേൾക്കുന്നു."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Medium",
+            "desc": "Sentences combining two actions.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-medium-3",
-            "category": "Sentences – Medium",
             "title": "Medium sentences – 3",
-            "desc": "More description and time expressions.",
             "texts": [
                 "ഇന്ന് വൈകുന്നേരം സുഹൃത്തുക്കൾ വീട്ടിൽ വരും.",
                 "ഞങ്ങൾ എല്ലാ ഞായറാഴ്ചയും ഒരുമിച്ച് ഭക്ഷണം കഴിക്കുന്നു."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Medium",
+            "desc": "More description and time expressions.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-medium-4",
-            "category": "Sentences – Medium",
             "title": "Medium sentences – 4",
-            "desc": "Describing habits and preferences.",
             "texts": [
                 "എനിക്ക് രാവിലെ നേരത്തെ എഴുന്നേൽക്കുന്നത് പതിവാണ്.",
-                "അവൾക്ക് സിനിമകൾ കാണുന്നതിലും പുസ്തകങ്ങൾ വായിക്കുന്നതിലും താൽപര്യം ഉണ്ട്."
-            ]
+                "അവൾക്ക് സിനിമകൾ കാണുന്നതിലും പുസ്തകങ്ങൾ വായിക്കാനാണ് ഇഷ്ടം."
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Medium",
+            "desc": "Describing habits and preferences.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-medium-5",
-            "category": "Sentences – Medium",
             "title": "Medium sentences – 5",
-            "desc": "Daily routine and simple plans.",
             "texts": [
                 "നാളെ ഞങ്ങൾ കുടുംബമായി ഒരു ചെറിയ യാത്രയ്ക്ക് പോകാൻ തീരുമാനിച്ചു.",
                 "ഓരോ ദിവസവും കുറച്ച് സമയം ടൈപ്പിംഗ് അഭ്യസിച്ചാൽ വേഗം മെച്ചപ്പെടും."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Medium",
+            "desc": "Daily routine and simple plans.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-hard-1",
-            "category": "Sentences – Hard",
             "title": "Hard sentences – 1",
-            "desc": "Longer sentences with multiple clauses.",
             "texts": [
-                "വിദ്യാഭ്യാസം മനുഷ്യന്റെ ജീവിതത്തിൽ വളരെ പ്രധാനമാണ്, കാരണം അത് ചിന്തിക്കാനുള്ള ശേഷിയും നല്ല തീരുമാനങ്ങൾ എടുക്കാനുള്ള കഴിവും നൽകുന്നു.",
-                "നമ്മൾ സമയം ശരിയായി ഉപയോഗിച്ചാൽ, ചെറിയ ശ്രമത്തിലൂടെ തന്നെ വലിയ മാറ്റങ്ങൾ ഉണ്ടാക്കാൻ കഴിയും."
-            ]
+                "വിദ്യാഭ്യാസം മനുഷ്യന്റെ ജീവിതത്തിൽ വളരെ പ്രധാനമാണ്, കാരണം അത് ചിന്തിക്കാനുള്ള ശേഷിയും നല്ല DECISION കഴിവും നൽകുന്നു.",
+                "നമ്മൾ സമയം ശരിയായി ഉപയോഗിച്ചാൽ, ചെറിയ ശ്രമത്തിലൂടെ പോലും വലിയ മാറ്റങ്ങൾ ഉണ്ടാക്കാൻ കഴിയും."
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Hard",
+            "desc": "Longer sentences with multiple clauses.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-hard-2",
-            "category": "Sentences – Hard",
             "title": "Hard sentences – 2",
-            "desc": "More complex structure and vocabulary.",
             "texts": [
                 "സുഹൃത്തുക്കളോടൊപ്പം പഠിച്ചാൽ സംശയങ്ങൾ പങ്കുവയ്ക്കാനും പുതിയ ആശയങ്ങൾ മനസ്സിലാക്കാനും എളുപ്പമാകുന്നു.",
-                "ഒരു നല്ല പുസ്തകം പലപ്പോഴും നമ്മുടെ ചിന്തകളെയും ജീവിതദർശനത്തെയും മാറ്റിവെക്കാൻ കഴിയുന്ന ശക്തിയുള്ളതാണ്."
-            ]
+                "ഒരു നല്ല പുസ്തകം പലപ്പോഴും നമ്മുടെ ചിന്തകളെയും ജീവിതദർശനത്തെയും മാറ്റിവെക്കാൻ കഴിയുന്ന ശക്തിയുള്ളമാണ്."
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Hard",
+            "desc": "More complex structure and vocabulary.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-hard-3",
-            "category": "Sentences – Hard",
             "title": "Hard sentences – 3",
-            "desc": "Descriptive, slightly formal language.",
             "texts": [
                 "അനുഭവങ്ങളിൽ നിന്ന് പഠിക്കുന്ന പാഠങ്ങൾ നമ്മുക്ക് പുസ്തകങ്ങളിലൂടെ മാത്രം ലഭിക്കാത്ത ഒരു പ്രത്യേക രൂപത്തിലുള്ള ജ്ഞാനമാണ്.",
                 "മലയാളഭാഷയുടെ മാധുരി പൂർണ്ണമായി ആസ്വദിക്കാൻ, നമുക്ക് പതിവായി വായിക്കുകയും എഴുതുകയും ചെയ്യേണ്ടത് അനിവാര്യമാണ്."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Hard",
+            "desc": "Descriptive, slightly formal language.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-hard-4",
-            "category": "Sentences – Hard",
             "title": "Hard sentences – 4",
-            "desc": "Sentences with abstract ideas and connectors.",
             "texts": [
-                "സാങ്കേതികവിദ്യ നമ്മുടെ ജീവിതം സൗകര്യപ്രദമാക്കിയെങ്കിലും, അതിന്റെ അതിപ്രയോഗം പലപ്പോഴും ആരോഗ്യത്തെയും ബന്ധങ്ങളെയും പ്രതികൂലമായി ബാധിച്ചേക്കാം.",
+                "സാങ്കേതികവിദ്യ നമ്മളുടെ ജീവിതം സൗകര്യപ്രദമാക്കിയെങ്കിലും, അതിന്റെ അതിപ്രയോഗം പലപ്പോഴും ആരോഗ്യത്തെയും ബന്ധങ്ങളെയും പ്രതികൂലമായി ബാധിച്ചേക്കാം.",
                 "സത്യത്തെ മാനിച്ച് സംസാരിക്കുന്ന ശീലമാണ് ദീർഘകാല ബന്ധങ്ങൾ ഉറപ്പിക്കുന്നതിൽ ഏറ്റവും പ്രധാനപ്പെട്ട ഘടകങ്ങളിൽ ഒന്ന്."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Hard",
+            "desc": "Sentences with abstract ideas and connectors.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         },
         {
             "id": "sentences-hard-5",
-            "category": "Sentences – Hard",
             "title": "Hard sentences – 5",
-            "desc": "Final challenge set with long continuous flow.",
             "texts": [
-                "നമുക്ക് ഒരു ചെറിയ സമയത്തേക്കെങ്കിലും ഓരോ ദിവസവും നിശ്ചിതമായി അഭ്യസിക്കാൻ കഴിഞ്ഞാൽ, ടൈപ്പിംഗും വായനയും ഒരുപോലെ സ്വാഭാവികമായൊരു കഴിവായി വളർന്നുവരും.",
+                "നമുക്ക് ഒരു ചെറിയ സമയത്തേക്കுமே ഓരോ ദിവസവും നിശ്ചിതമായി അഭ്യസിക്കാൻ കഴിയുകയാണെങ്കിൽ, ടൈപ്പിംഗും വായനയും ഒരുപോലെ സ്വാഭാവികമായൊരു കഴിവായി വളർന്നുവരും.",
                 "തെറ്റുകൾ ഉണ്ടാകുന്നത് പഠനത്തിന്റെ സ്വാഭാവിക ഘട്ടമാണെന്ന് മനസ്സിലാക്കി, അതിനെ ഭയപ്പെടാതെ തിരുത്താനുള്ള മനസ്സാണ് യഥാർത്ഥ പുരോഗതിയിലേക്ക് നയിക്കുന്നത്."
-            ]
+            ],
+            "ui_mode": "practice",
+            "category": "Sentences – Hard",
+            "desc": "Final challenge set with long continuous flow.",
+            "pass_criteria": {
+                "accuracy_percentage": 90,
+                "wpm": 25,
+                "type": "performance",
+                "minimum_score": 75
+            }
         }
     ]
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 
 import ModeHeader from "../components/ModeHeader";
 
@@ -11,7 +11,6 @@ import StatusBar from "../components/StatusBar";
 import ResultOverlay from "../components/ResultOverlay";
 import KeyboardLayout from "../components/KeyboardLayout";
 import LessonResultModal from "../components/LessonResultModal";
-import FamiliarizeModal from "../components/FamiliarizeModal";
 
 import useTypingModel, {
   getCourseLessons,
@@ -21,6 +20,8 @@ import useTypingModel, {
 } from "../features/typing/useTypingModel";
 
 import type { CourseLesson } from "../utils/types";
+import type { TypingMetrics } from "../utils/metrics";
+import { setSoundConfig } from "../utils/sounds";
 
 export default function AppShell() {
   const {
@@ -33,6 +34,7 @@ export default function AppShell() {
     currentCharIndex,
     statusMsg,
     statusError,
+    toastOpen,
     fingerInfo,
     resultStats,
     showResult,
@@ -45,38 +47,45 @@ export default function AppShell() {
     handleRetryFromLesson,
     handleReviewFromLesson,
     updateConfig,
+    setToastOpen,
   } = useTypingModel();
-
-  // UI-only state (modals / theme) kept in shell for simple separation
-  const [showModeModal, setShowModeModal] = useState<boolean>(true);
-  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
-  const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
-  const [showFamiliarize, setShowFamiliarize] = useState<boolean>(false);
-  const [familiarizeTarget, setFamiliarizeTarget] = useState<string | null>(
-    null,
-  );
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") return "dark";
-    const stored = localStorage.getItem("theme");
-    return stored === "light" || stored === "dark" ? stored : "dark";
-  });
-
-  // Apply theme class to document root (same behaviour as old App)
-  React.useEffect(() => {
-    if (typeof document === "undefined") return;
-    const root = document.documentElement;
-    if (theme === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
-    try {
-      localStorage.setItem("theme", theme);
-    } catch {
-      // ignore
-    }
-  }, [theme]);
 
   const { config, progress } = state;
   const currentMode = config.mode;
   const modeProgress = progress.modes[currentMode];
+
+  const soundConfig = {
+    enableSounds: config.sound.enableSounds,
+    typingVolumePct: config.sound.typingVolumePct,
+    errorVolumePct: config.sound.errorVolumePct,
+  };
+
+  // Sync the native sound player whenever the saved config changes
+  useEffect(() => {
+    setSoundConfig({
+      enableSounds: !!soundConfig.enableSounds,
+      typingVolume: Math.max(
+        0,
+        Math.min(1, (soundConfig.typingVolumePct ?? 0) / 100),
+      ),
+      errorVolume: Math.max(
+        0,
+        Math.min(1, (soundConfig.errorVolumePct ?? 0) / 100),
+      ),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // intentionally watch the raw saved values to keep sound player consistent with cache
+    config.sound?.enableSounds,
+    config.sound?.typingVolumePct,
+    config.sound?.errorVolumePct,
+  ]);
+  // UI-only state (modals / theme) kept in shell for simple separation
+  const [showModeModal, setShowModeModal] = useState<boolean>(
+    currentMode === undefined,
+  );
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
 
   // handlers for mode picker
   const handleModeCardSelect = (modeId: typeof config.mode) => {
@@ -86,12 +95,35 @@ export default function AppShell() {
 
   // The "familiarize" modal will require passing keys/title; we keep showing logic in shell
   const lessons: CourseLesson[] = getCourseLessons();
-  const resolvedLesson =
+  const currentLesson =
     config.course.lessonId &&
       lessons.find((l) => l.id === config.course.lessonId)
-      ? (lessons.find((l) => l.id === config.course.lessonId) as any)
+      ? (lessons.find((l) => l.id === config.course.lessonId) as CourseLesson)
       : lessons[0];
-  const currentLesson = resolvedLesson;
+
+  // helper to build a minimal TypingMetrics object for warmup-only dialogs
+  function makeWarmupDummyStats(): TypingMetrics {
+    return {
+      wpm: 0,
+      rawWpm: 0,
+      accuracy: 100,
+      correct: 0,
+      incorrect: 0,
+      extra: 0,
+      missed: 0,
+      totalTyped: 0,
+      durationMs: 0,
+    } as TypingMetrics;
+  }
+
+  // defaults for parts/score when warmup only
+  const warmupDefaultParts = {
+    wpmScore: 0,
+    rawScore: 0,
+    accScore: 0,
+    completenessScore: 0,
+    missing: 0,
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-50">
@@ -121,19 +153,16 @@ export default function AppShell() {
           />
         </main>
 
-        <StatusBar message={statusMsg} isError={statusError} />
+        <StatusBar
+          open={toastOpen}
+          message={statusMsg}
+          isError={statusError}
+          onClose={() => setToastOpen(false)}
+        />
 
         {config.ui.showKeyboard && stage !== "config" && currentText && (
           <KeyboardLayout fingerInfo={fingerInfo || undefined} />
         )}
-
-        <ResultOverlay
-          show={showResult}
-          stats={resultStats}
-          onRepeat={prepareTest}
-          modeName={currentMode}
-          modeProgress={modeProgress}
-        />
 
         <footer className="mt-6 border-t border-slate-800 pt-3 text-center text-[11px] text-slate-500">
           © {new Date().getFullYear()} Typing Master · Malayalam typing
@@ -166,10 +195,6 @@ export default function AppShell() {
             ui: { ...cfg.ui, allowBackspace: !value },
           }))
         }
-        theme={theme}
-        onToggleTheme={() =>
-          setTheme((prev) => (prev === "dark" ? "light" : "dark"))
-        }
         fontFamily={config.ui.fontFamily ?? "default"}
         fontSize={config.ui.fontSize ?? "text-lg"}
         onChangeFontFamily={(value) =>
@@ -184,29 +209,37 @@ export default function AppShell() {
             ui: { ...cfg.ui, fontSize: value },
           }))
         }
-      />
-
-      <FamiliarizeModal
-        open={showFamiliarize}
-        onClose={() => {
-          setShowFamiliarize(false);
-          setFamiliarizeTarget(null);
-        }}
-        lessonTitle={(() => {
-          if (!familiarizeTarget) return currentLesson.title;
-          const t = lessons.find((l) => l.id === familiarizeTarget);
-          return t ? t.title : currentLesson.title;
-        })()}
-        keys={(() => {
-          if (!familiarizeTarget) return currentLesson.keys ?? [];
-          const t = lessons.find((l) => l.id === familiarizeTarget);
-          return t ? (t.keys ?? []) : (currentLesson.keys ?? []);
-        })()}
-        onStartLesson={() => {
-          setShowFamiliarize(false);
-          setFamiliarizeTarget(null);
-          setTimeout(() => prepareTest(), 30);
-        }}
+        /* --- SOUND: pass current saved values (use defaults if missing) --- */
+        enableSounds={soundConfig.enableSounds}
+        onToggleSounds={(val: boolean) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            sound: {
+              ...(cfg.sound ?? {}),
+              enableSounds: val,
+            },
+          }))
+        }
+        typingVolume={soundConfig.typingVolumePct}
+        onChangeTypingVolume={(pct: number) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            sound: {
+              ...(cfg.sound ?? {}),
+              typingVolumePct: pct,
+            },
+          }))
+        }
+        errorVolume={soundConfig.errorVolumePct}
+        onChangeErrorVolume={(pct: number) =>
+          updateConfig((cfg) => ({
+            ...cfg,
+            sound: {
+              ...(cfg.sound ?? {}),
+              errorVolumePct: pct,
+            },
+          }))
+        }
       />
 
       {/* Configuration modal */}
@@ -284,25 +317,39 @@ export default function AppShell() {
             course: { ...cfg.course, lessonId },
           }))
         }
-        onFamiliarize={(lessonId?: string) => {
-          setFamiliarizeTarget(lessonId ?? currentLesson.id);
-          setShowFamiliarize(true);
-        }}
       />
 
-      {lessonResult.open && lessonResult.stats && lessonResult.computed && (
-        <LessonResultModal
-          open={true}
-          onClose={() => { }}
-          stats={lessonResult.stats}
-          score={lessonResult.computed.score}
-          parts={lessonResult.computed.parts}
-          canAdvance={!!lessonResult.canAdvance}
-          onAdvance={handleAdvanceFromLesson}
-          onRetry={handleRetryFromLesson}
-          onReview={handleReviewFromLesson}
-        />
-      )}
+      {/* Show lesson result modal for course mode (including warmup-complete case).
+          For non-course modes the ResultOverlay above will handle results. */}
+      {lessonResult.open &&
+        (lessonResult.stats || lessonResult.warmupComplete) && (
+          <LessonResultModal
+            open={true}
+            onClose={() => { }}
+            stats={lessonResult.stats ?? makeWarmupDummyStats()}
+            score={lessonResult.computed?.score ?? 0}
+            parts={lessonResult.computed?.parts ?? warmupDefaultParts}
+            canAdvance={!!lessonResult.canAdvance}
+            onAdvance={handleAdvanceFromLesson}
+            onRetry={handleRetryFromLesson}
+            onReview={handleReviewFromLesson}
+            lesson={(() => {
+              // pass lesson info to modal so it can decide warmup vs practice
+              const lessons = getCourseLessons();
+              const id = lessonResult.lessonId ?? (lessons[0] && lessons[0].id);
+              return lessons.find((l) => l.id === id) ?? undefined;
+            })()}
+          />
+        )}
+
+      {/* Result overlay used for non-course modes (and can still appear for course mode if you want) */}
+      <ResultOverlay
+        show={showResult}
+        stats={resultStats}
+        onRepeat={prepareTest}
+        modeName={currentMode}
+        modeProgress={modeProgress}
+      />
     </div>
   );
 }

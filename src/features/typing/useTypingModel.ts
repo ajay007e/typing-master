@@ -1,4 +1,3 @@
-// src/features/typing/useTypingModel.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
@@ -17,6 +16,7 @@ import {
     getTypingProgress,
     PLACEHOLDER,
 } from "../../utils/typingModel";
+import { playTypingSound, playErrorSound } from "../../utils/sounds";
 import { KEY_TO_CODE } from "../../utils/keystrokes";
 
 /* -------------------- imported constants / service -------------------- */
@@ -31,6 +31,7 @@ import {
     generateTestText,
     computeResults,
     applyResultToProgress,
+    evaluatePassCriteria,
 } from "./typingService";
 /* --------------------------------------------------------------------- */
 
@@ -44,7 +45,7 @@ const defaultConfig: AppConfig = {
         customLength: 20,
     },
     paragraph: {
-        text: "",
+        text: "എനിക്ക് മലയാളം ഇഷ്ടമാണ്",
     },
     common: {
         lenOption: "30",
@@ -58,6 +59,11 @@ const defaultConfig: AppConfig = {
         allowBackspace: true,
         fontFamily: "default",
         fontSize: "text-lg",
+    },
+    sound: {
+        enableSounds: false,
+        typingVolumePct: 50,
+        errorVolumePct: 50,
     },
 };
 
@@ -78,6 +84,7 @@ function loadInitialState(): AppState {
         if (!raw) return defaultState;
         const parsed = JSON.parse(raw) as AppState;
 
+        // migrate / ensure UI settings
         if (!parsed.config.ui) {
             parsed.config.ui = {
                 showKeyboard: true,
@@ -97,20 +104,40 @@ function loadInitialState(): AppState {
             }
         }
 
+        // --- migrate / ensure sound settings (new) ---
+        // sensible defaults (percents for UI sliders)
+        const SOUND_DEFAULTS = {
+            enableSounds: true,
+            typingVolumePct: 16,
+            errorVolumePct: 70,
+        };
+
+        if (!parsed.config.sound) {
+            parsed.config.sound = { ...SOUND_DEFAULTS };
+        } else {
+            if (parsed.config.sound.enableSounds === undefined) {
+                parsed.config.sound.enableSounds = SOUND_DEFAULTS.enableSounds;
+            }
+            if (
+                parsed.config.sound.typingVolumePct === undefined ||
+                parsed.config.sound.typingVolumePct === null
+            ) {
+                parsed.config.sound.typingVolumePct = SOUND_DEFAULTS.typingVolumePct;
+            }
+            if (
+                parsed.config.sound.errorVolumePct === undefined ||
+                parsed.config.sound.errorVolumePct === null
+            ) {
+                parsed.config.sound.errorVolumePct = SOUND_DEFAULTS.errorVolumePct;
+            }
+        }
+
         return parsed;
     } catch {
         return defaultState;
     }
 }
 
-/**
- * Named helpers exported from this module so consumers can import them directly:
- * - getLetters()
- * - getCourseLessons()
- *
- * (This is simpler & type-safe than relying on dynamically attached properties
- * on the hook function object.)
- */
 export function getLetters(): string[] {
     return LETTERS;
 }
@@ -121,7 +148,9 @@ export function getCourseLessons(): CourseLesson[] {
 export function useTypingModel() {
     const [state, setState] = useState<AppState>(() => loadInitialState());
 
-    // typed/test state
+    const [toastOpen, setToastOpen] = useState<boolean>(false);
+
+    // test states
     const [currentText, setCurrentText] = useState<string>("");
     const [typedText, setTypedText] = useState<string>("");
     const [stage, setStage] = useState<Stage>("config");
@@ -130,9 +159,7 @@ export function useTypingModel() {
     );
     const [statusError, setStatusError] = useState<boolean>(false);
     const [graphemeInfos, setGraphemeInfos] = useState<GraphemeInfo[]>([]);
-    const [preLessonDoneMap, setPreLessonDoneMap] = useState<
-        Record<string, boolean>
-    >({});
+
     const [testStartTime, setTestStartTime] = useState<number | null>(null);
     const [resultStats, setResultStats] = useState<TypingMetrics | null>(null);
     const [showResult, setShowResult] = useState<boolean>(false);
@@ -141,17 +168,20 @@ export function useTypingModel() {
         stats?: TypingMetrics;
         computed?: any;
         canAdvance?: boolean;
+        warmupComplete?: boolean;
+        lessonId?: string | null;
     }>({ open: false });
 
-    // UI helpers
+    // UI ref helpers
     const hiddenInputRef = useRef<HTMLTextAreaElement | null>(null);
-    const hasRecordedResultRef = useRef<boolean>(false);
     const lastStrokeInfoRef = useRef<{ wrong: boolean; fill: number }>({
         wrong: false,
         fill: 0,
     });
 
-    // derived
+    const lessonIdAtStartRef = useRef<string | null>(null);
+
+    // derived values
     const { config, progress } = state;
     const currentMode = config.mode;
     const modeProgress = progress.modes[currentMode];
@@ -166,7 +196,6 @@ export function useTypingModel() {
         totalTypedUnits,
     );
 
-    // finger info for keyboard
     let fingerInfo: { baseKey: string | null; shift: boolean } | null = null;
 
     if (
@@ -189,7 +218,7 @@ export function useTypingModel() {
         }
     }
 
-    // persist state to localStorage
+    // persist main state to localStorage
     useEffect(() => {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -198,7 +227,6 @@ export function useTypingModel() {
         }
     }, [state]);
 
-    // ---- helpers to update config/progress (moved from App) ----
     function updateConfig(updater: (cfg: AppConfig) => AppConfig) {
         setState((prev) => ({ ...prev, config: updater(prev.config) }));
     }
@@ -207,22 +235,31 @@ export function useTypingModel() {
         setState((prev) => ({ ...prev, progress: updater(prev.progress) }));
     }
 
-    // ---- test generation helpers (now use typingService) ----
-    function prepareTest() {
+    // ---- test generation helper ----
+    function prepareTest(overrideLessonId?: string | null) {
+        if (stage === "finished") return;
         setStatusError(false);
 
+        // If overrideLessonId provided and mode is course, build a temp config
+        const cfgToUse =
+            config.mode === "course" && overrideLessonId !== undefined
+                ? {
+                    ...config,
+                    course: { ...config.course, lessonId: overrideLessonId },
+                }
+                : config;
+
         const res = generateTestText({
-            config,
+            config: cfgToUse,
             progress,
             selectedLetters,
-            preLessonDoneMap,
-            courseLessons: COURSE_LESSONS.lessons,
         });
 
         if (!res.ok) {
             setStatusMsg(res.reason);
+
+            setToastOpen(true);
             setStatusError(true);
-            // if needsFamiliarize = true the UI should show the familiarize modal
             return;
         }
 
@@ -232,12 +269,23 @@ export function useTypingModel() {
         setGraphemeInfos(buildGraphemeInfos(text));
         setStage("prestart");
         setStatusMsg("Press any key to begin the test.");
+        setToastOpen(true);
         setStatusError(false);
         setTestStartTime(null);
         setResultStats(null);
         setShowResult(false);
-        hasRecordedResultRef.current = false;
         document.body.classList.add("test-active");
+
+        // capture the lesson id for the test (use override first, else config fallback)
+        if (cfgToUse.mode === "course") {
+            const fallbackId =
+                COURSE_LESSONS.lessons && COURSE_LESSONS.lessons.length > 0
+                    ? COURSE_LESSONS.lessons[0].id
+                    : null;
+            lessonIdAtStartRef.current = cfgToUse.course.lessonId ?? fallbackId;
+        } else {
+            lessonIdAtStartRef.current = null;
+        }
 
         setTimeout(() => {
             if (hiddenInputRef.current) {
@@ -251,6 +299,8 @@ export function useTypingModel() {
         if (stage !== "prestart") return;
         setStage("running");
         setStatusMsg("Typing… press Esc to reset.");
+
+        setToastOpen(true);
         setStatusError(false);
         setTestStartTime(Date.now());
         if (hiddenInputRef.current) {
@@ -267,15 +317,21 @@ export function useTypingModel() {
         setShowResult(false);
         setResultStats(null);
         setTestStartTime(null);
-        hasRecordedResultRef.current = false;
         setStatusMsg("Press any key to begin the test.");
+
+        setToastOpen(true);
         setStatusError(false);
     }
 
+    /**
+     * finishTest:
+     * - for course mode: compute results, persist lesson progress (using captured lesson id),
+     *   for familiarization lessons: mark pre-lesson done and auto-advance (no pass criteria).
+     *   for practice lessons: evaluate pass criteria and only auto-advance if passed.
+     * - for non-course modes: show ResultOverlay (resultStats + showResult) and update per-mode progress.
+     */
     function finishTest(inputText: string) {
         if (stage !== "running") return;
-        if (hasRecordedResultRef.current) return;
-        hasRecordedResultRef.current = true;
 
         const { stats, computed, canAdvance } = computeResults({
             currentText,
@@ -283,32 +339,154 @@ export function useTypingModel() {
             startTimeMs: testStartTime,
         });
 
+        // COURSE MODE
+        if (currentMode === "course") {
+            // use the captured lesson id (from prepareTest)
+            const lessonIdAtStart = lessonIdAtStartRef.current;
+
+            const lessonObj = lessonIdAtStart
+                ? (COURSE_LESSONS.lessons.find((l) => l.id === lessonIdAtStart) ?? null)
+                : null;
+
+            // Persist per-lesson progress under the captured lesson id (if present)
+            if (lessonIdAtStart) {
+                setState((prev) => {
+                    const lessonsMap = { ...prev.progress.lessons };
+                    const prevEntry = lessonsMap[lessonIdAtStart] || {
+                        runs: 0,
+                        bestWpm: 0,
+                        bestAcc: 0,
+                        lastTime: null as string | null,
+                    };
+
+                    const newEntry = { ...prevEntry };
+                    newEntry.runs = (newEntry.runs || 0) + 1;
+                    if (stats) {
+                        if (stats.wpm > (newEntry.bestWpm || 0))
+                            newEntry.bestWpm = stats.wpm;
+                        if (stats.accuracy > (newEntry.bestAcc || 0))
+                            newEntry.bestAcc = stats.accuracy;
+                    }
+                    newEntry.lastTime = new Date().toISOString();
+                    lessonsMap[lessonIdAtStart] = newEntry;
+
+                    const newProgress = { ...prev.progress, lessons: lessonsMap };
+                    return { ...prev, progress: newProgress };
+                });
+            }
+
+            // If this is a familiarization (warmup) lesson -> treat as completed:
+            // - mark pre-lesson done (so generateTestText won't block)
+            // - mark lessonResult.warmupComplete so UI can show warmup-card
+            // - auto-advance to next lesson (no pass criteria check)
+            if (lessonObj && lessonObj.ui_mode === "familiarization") {
+                // prepare lesson result indicating warmup complete (stats included)
+                setLessonResult({
+                    open: true,
+                    stats,
+                    computed,
+                    canAdvance: true, // warmup considered "allowed" to advance
+                    lessonId: lessonIdAtStart ?? null,
+                    warmupComplete: true,
+                });
+
+                // auto-advance to next lesson (if present) using captured id
+                if (lessonIdAtStart) {
+                    const idx = COURSE_LESSONS.lessons.findIndex(
+                        (l) => l.id === lessonIdAtStart,
+                    );
+                    if (idx >= 0 && idx < COURSE_LESSONS.lessons.length - 1) {
+                        const nextLesson = COURSE_LESSONS.lessons[idx + 1];
+                        updateConfig((cfg) => ({
+                            ...cfg,
+                            course: { ...cfg.course, lessonId: nextLesson.id },
+                        }));
+                    } else {
+                        updateConfig((cfg) => ({
+                            ...cfg,
+                            course: { ...cfg.course, lessonId: null },
+                        }));
+                    }
+                }
+
+                setResultStats(stats);
+                setShowResult(false);
+                setStage("finished");
+                setStatusMsg(
+                    "Warm-up completed. Use dialog to start practice or continue.",
+                );
+
+                setToastOpen(true);
+                setStatusError(false);
+                return;
+            }
+
+            // PRACTICE lesson: evaluate pass criteria (if present) and advance only if allowed
+            const passEval = evaluatePassCriteria(lessonObj, stats, computed);
+            // if lesson had no criteria, fallback to computed.canAdvance if available
+            const fallbackCanAdvance = canAdvance && canAdvance.allowed;
+            const effectiveAllowed = passEval
+                ? passEval.allowed
+                : !!fallbackCanAdvance;
+
+            // set lesson result and allow UI to manage advance
+            setLessonResult({
+                open: true,
+                stats,
+                computed,
+                canAdvance: !!effectiveAllowed,
+                lessonId: lessonIdAtStart ?? null,
+            });
+
+            // If allowed by criteria, auto-advance now
+            if (effectiveAllowed && lessonIdAtStart) {
+                const idx = COURSE_LESSONS.lessons.findIndex(
+                    (l) => l.id === lessonIdAtStart,
+                );
+                if (idx >= 0 && idx < COURSE_LESSONS.lessons.length - 1) {
+                    const nextLesson = COURSE_LESSONS.lessons[idx + 1];
+                    updateConfig((cfg) => ({
+                        ...cfg,
+                        course: { ...cfg.course, lessonId: nextLesson.id },
+                    }));
+                } else {
+                    updateConfig((cfg) => ({
+                        ...cfg,
+                        course: { ...cfg.course, lessonId: null },
+                    }));
+                }
+            }
+
+            setResultStats(stats);
+            setShowResult(false);
+            setStage("finished");
+            setStatusMsg(
+                "Lesson completed. Use the result dialog to advance, retry or review.",
+            );
+
+            setToastOpen(true);
+            setStatusError(false);
+            return;
+        }
+
+        // NON-COURSE MODES -> show overlay and update mode progress
         setResultStats(stats);
-        setShowResult(false);
+        setShowResult(true);
 
-        setLessonResult({
-            open: true,
-            stats,
-            computed,
-            canAdvance: canAdvance.allowed,
-        });
-
-        // update per-mode progress (pure)
         setState((prev) => {
             const newProgress = applyResultToProgress({
                 prev: prev.progress,
                 mode: currentMode,
                 stats,
-                courseLessonId:
-                    currentMode === "course"
-                        ? (prev.config.course.lessonId ?? COURSE_LESSONS.lessons[0].id)
-                        : undefined,
+                courseLessonId: undefined,
             });
             return { ...prev, progress: newProgress };
         });
 
         setStage("finished");
         setStatusMsg("Test completed. Press Enter to retry or Esc to reset.");
+
+        setToastOpen(true);
         setStatusError(false);
     }
 
@@ -369,6 +547,7 @@ export function useTypingModel() {
         const inputType = native.inputType;
 
         if (inputType === "deleteContentBackward") {
+            // no typing sound on delete (optional choice)
             setTypedText((prev) => {
                 if (!prev.length) return prev;
 
@@ -394,6 +573,7 @@ export function useTypingModel() {
 
         let val = e.target.value.replace(/\r/g, "");
 
+        // If the lastStroke was wrong, we handle placeholders and play error sound
         if (lastStrokeInfoRef.current.wrong) {
             const { fill } = lastStrokeInfoRef.current;
             if (fill > 0) {
@@ -402,7 +582,22 @@ export function useTypingModel() {
                     hiddenInputRef.current.value = val;
                 }
             }
+            // Play error sound (user typed something incorrect previously)
+            try {
+                playErrorSound();
+            } catch (err) {
+                // ignore sound errors
+            }
+            // Clear the wrong flag so the next input proceeds normally
             lastStrokeInfoRef.current = { wrong: false, fill: 0 };
+            // still continue to update typedText below
+        } else {
+            // normal typing sound
+            try {
+                playTypingSound();
+            } catch {
+                // ignore
+            }
         }
 
         const totalStrokesRequired = graphemeInfos.reduce(
@@ -422,6 +617,7 @@ export function useTypingModel() {
         const { charIndex } = getTypingProgress(graphemeInfos, val.length);
 
         if (charIndex >= graphemeInfos.length) {
+            // finished typing all graphemes -> finalize
             finishTest(val);
         }
     }
@@ -440,8 +636,11 @@ export function useTypingModel() {
         const handler = (e: KeyboardEvent) => {
             if (lessonResult.open && e.key === "Enter") {
                 e.preventDefault();
-                setLessonResult({ open: false });
-                resetTest();
+                if (lessonResult?.canAdvance) {
+                    handleAdvanceFromLesson();
+                } else {
+                    handleRetryFromLesson();
+                }
                 return;
             }
 
@@ -480,6 +679,8 @@ export function useTypingModel() {
                     setStatusMsg(
                         "Looks like your keyboard is not in Malayalam layout. Please switch to Malayalam (InScript) and try again.",
                     );
+
+                    setToastOpen(true);
                     setStatusError(true);
                     return;
                 }
@@ -511,59 +712,83 @@ export function useTypingModel() {
         config.course,
     ]);
 
-    // Advance handlers used by LessonResultModal
+    /**
+     * handleAdvanceFromLesson:
+     * - If warmupComplete -> nothing more to compute: pre-lesson is already marked in finishTest.
+     *   Advance to next lesson (already done in finishTest) and prepareTest.
+     * - Otherwise (practice result) persist progress (idempotent), advance to next lesson if allowed
+     */
     const handleAdvanceFromLesson = () => {
         const lr = lessonResult;
-        if (!lr.open || !lr.stats || !lr.computed) {
+        if (!lr.open) {
             setLessonResult({ open: false });
             return;
         }
 
-        // update lesson progress (mark best)
-        updateProgress((prev) => {
-            const lessons = { ...prev.lessons };
-            const lessonId = config.course.lessonId ?? COURSE_LESSONS.lessons[0].id;
-            const lp = lessons[lessonId] || {
-                runs: 0,
-                bestWpm: 0,
-                bestAcc: 0,
-                lastTime: null as string | null,
-            };
+        // Regular practice advance
+        if (!lr.stats || !lr.computed) {
+            setLessonResult({ open: false });
+            return;
+        }
 
-            lp.runs = (lp.runs || 0) + 1;
+        setStage("prestart");
 
-            const stats = lr.stats;
-            if (stats) {
-                if (stats.wpm > lp.bestWpm) lp.bestWpm = stats.wpm;
-                if (stats.accuracy > lp.bestAcc) lp.bestAcc = stats.accuracy;
+        // Persist progress one more time idempotently (use captured lesson id)
+        // Derive the lesson id we should operate on:
+        const lessonIdAtStart = lessonIdAtStartRef.current;
+
+        if (lessonIdAtStart) {
+            updateProgress((prev) => {
+                const lessons = { ...prev.lessons };
+                const lp = lessons[lessonIdAtStart] || {
+                    runs: 0,
+                    bestWpm: 0,
+                    bestAcc: 0,
+                    lastTime: null as string | null,
+                };
+
+                // ensure we merge stats
+                if (lr.stats) {
+                    if (lr.stats.wpm > (lp.bestWpm ?? 0)) lp.bestWpm = lr.stats.wpm;
+                    if (lr.stats.accuracy > (lp.bestAcc ?? 0))
+                        lp.bestAcc = lr.stats.accuracy;
+                }
+                lp.lastTime = new Date().toISOString();
+                lessons[lessonIdAtStart] = lp;
+                return { ...prev, lessons };
+            });
+        }
+
+        // Advance to next lesson if exists
+        if (lessonIdAtStart) {
+            const idx = COURSE_LESSONS.lessons.findIndex(
+                (l) => l.id === lessonIdAtStart,
+            );
+            if (idx >= 0 && idx < COURSE_LESSONS.lessons.length - 1) {
+                const nextLesson = COURSE_LESSONS.lessons[idx + 1];
+                updateConfig((cfg) => ({
+                    ...cfg,
+                    course: { ...cfg.course, lessonId: nextLesson.id },
+                }));
             }
-
-            lp.lastTime = new Date().toISOString();
-            lessons[lessonId] = lp;
-            return { ...prev, lessons };
-        });
-
-        // unlock / move to next lesson if exists
-        const idx = COURSE_LESSONS.lessons.findIndex(
-            (l) => l.id === (config.course.lessonId ?? COURSE_LESSONS.lessons[0].id),
-        );
-        if (idx >= 0 && idx < COURSE_LESSONS.lessons.length - 1) {
-            const nextLesson = COURSE_LESSONS.lessons[idx + 1];
-            updateConfig((cfg) => ({
-                ...cfg,
-                course: { ...cfg.course, lessonId: nextLesson.id },
-            }));
         }
 
         setLessonResult({ open: false });
-        setTimeout(() => {
-            prepareTest();
-        }, 50);
     };
 
     const handleRetryFromLesson = () => {
+        const lr = lessonResult;
+        // determine which lesson we should retry: prefer the saved lessonId on the modal
+        const lessonToRetry = lr.lessonId ?? lessonIdAtStartRef.current ?? null;
+
+        // set the captured lesson id back to the ref (so internal logic uses the correct one)
+        lessonIdAtStartRef.current = lessonToRetry;
+
+        setStage("prestart");
         setLessonResult({ open: false });
-        resetTest();
+
+        // Prepare the test forcing the same lesson id — use the override parameter
+        setTimeout(() => prepareTest(lessonToRetry), 0);
     };
 
     const handleReviewFromLesson = () => {
@@ -573,11 +798,6 @@ export function useTypingModel() {
         }
         setLessonResult({ open: false });
     };
-
-    // Mark pre-lesson done (used by UI Familiarize onStart)
-    function markPreLessonDone(lessonId: string) {
-        setPreLessonDoneMap((prev) => ({ ...prev, [lessonId]: true }));
-    }
 
     // Expose a compact API object
     return {
@@ -596,7 +816,7 @@ export function useTypingModel() {
         showResult,
         lessonResult,
         modeProgress,
-        preLessonDoneMap,
+        toastOpen,
 
         // actions
         prepareTest,
@@ -608,7 +828,7 @@ export function useTypingModel() {
         handleRetryFromLesson,
         handleReviewFromLesson,
         updateConfig,
-        markPreLessonDone,
+        setToastOpen,
     };
 }
 

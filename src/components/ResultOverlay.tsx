@@ -1,3 +1,4 @@
+// src/components/ResultOverlay.tsx
 import React from "react";
 import type { TypingMetrics } from "../utils/metrics";
 import type { ProgressMode } from "../utils/types";
@@ -36,9 +37,9 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
   const durationSec = (stats.durationMs / 1000).toFixed(1);
   const bestLine = modeProgress
-    ? `Best in ${prettyModeName(modeName)}: ${modeProgress.bestWpm.toFixed(
-      1,
-    )} WPM, ${modeProgress.bestAcc.toFixed(0)}% accuracy`
+    ? `Best in ${prettyModeName(modeName)}: ${(
+      modeProgress.bestWpm ?? 0
+    ).toFixed(1)} WPM, ${(modeProgress.bestAcc ?? 0).toFixed(0)}% accuracy`
     : null;
 
   return (
@@ -93,27 +94,6 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           </div>
         </div>
 
-        {/* Detailed breakdown */}
-        {/*
-        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
-          <div className="flex justify-between">
-            <span>Incorrect</span>
-            <span>{stats.incorrect}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Extra</span>
-            <span>{stats.extra}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Missed</span>
-            <span>{stats.missed}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Total typed</span>
-            <span>{stats.totalTyped}</span>
-          </div>
-        </div>
-        */}
         {/* Best in this mode */}
         {bestLine && (
           <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left text-[11px] text-slate-300">
@@ -121,10 +101,10 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
               Best in this mode
             </div>
             <div className="mt-1 text-[11px] text-slate-100">
-              {modeProgress!.bestWpm.toFixed(1)} WPM ·{" "}
-              {modeProgress!.bestAcc.toFixed(0)}% accuracy ·{" "}
-              {modeProgress!.runs} run
-              {modeProgress!.runs === 1 ? "" : "s"}
+              {(modeProgress?.bestWpm ?? 0).toFixed(1)} WPM ·{" "}
+              {(modeProgress?.bestAcc ?? 0).toFixed(0)}% accuracy ·{" "}
+              {modeProgress?.runs ?? 0} run
+              {(modeProgress?.runs ?? 0) === 1 ? "" : "s"}
             </div>
           </div>
         )}

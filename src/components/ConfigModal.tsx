@@ -59,14 +59,17 @@ function computeLessonLockInfo(
   const prev = lessons[idx - 1];
   const prevProg = progress.lessons?.[prev.id] ?? null;
 
-  const th = lessons[idx].thresholds;
-  const reqWpm = th?.advanceScore ?? WPM_UNLOCK_DEFAULT;
-  const reqAcc = th?.minAccuracy ?? ACC_UNLOCK_DEFAULT;
+  // thresholds may be absent; course.json uses "thresholds" or similar fields.
+  // Use 'any' to avoid TS errors if your CourseLesson type doesn't include thresholds.
+  const th = (prev as CourseLesson).pass_criteria;
+  const reqWpm = th?.wpm ?? WPM_UNLOCK_DEFAULT;
+  const reqAcc = th?.accuracy_percentage ?? ACC_UNLOCK_DEFAULT;
+  const type = th?.type ?? "performance";
 
   const unlocked = !!(
     prevProg &&
-    prevProg.bestWpm >= reqWpm &&
-    prevProg.bestAcc >= reqAcc
+    (type === "completed" ||
+      ((prevProg.bestWpm ?? 0) >= reqWpm && (prevProg.bestAcc ?? 0) >= reqAcc))
   );
 
   return {
@@ -267,17 +270,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
             )}
         </div>
 
-        <select
-          value={currentLesson.id}
-          onChange={(e) => onCourseLessonChange(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-        >
-          {lessons.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.title}
-            </option>
-          ))}
-        </select>
+        {/* TOP DROPDOWN REMOVED - selection is handled via per-lesson Select buttons below */}
 
         <div className="text-xs text-slate-400">Lesson progress</div>
 
@@ -289,8 +282,13 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 
             const lockReason =
               !unlocked && lockInfo.prevLesson
-                ? `Complete “${lockInfo.prevLesson.title}” with at least ${lockInfo.reqWpm} WPM and ${lockInfo.reqAcc}% accuracy`
+                ? `Complete ${lockInfo.prevLesson.title}`
                 : null;
+
+            // check ui_mode for familiarization (allow both common spellings to be safe)
+            const uiMode = (l as any).ui_mode;
+            const isFamiliarization =
+              uiMode === "familiarization" || uiMode === "familarization";
 
             return (
               <div
@@ -313,16 +311,24 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                   </div>
 
                   <div className="mt-0.5 text-xs text-slate-400">
-                    {lp
-                      ? `${lp.bestWpm.toFixed(1)} WPM · ${lp.bestAcc.toFixed(0)}%`
-                      : "Not attempted"}
+                    {!unlocked ? (
+                      // not unlocked -> show reason
+                      <div className="mt-1 text-[11px] text-amber-200/90">
+                        {lockReason}
+                      </div>
+                    ) : isFamiliarization ? (
+                      // unlocked + familiarization -> completed
+                      <span className="text-emerald-300 font-medium">
+                        Completed
+                      </span>
+                    ) : lp ? (
+                      // unlocked + has progress -> show metrics
+                      `${(lp.bestWpm ?? 0).toFixed(1)} WPM · ${(lp.bestAcc ?? 0).toFixed(0)}%`
+                    ) : (
+                      // unlocked + no progress -> not attempted
+                      "Not attempted"
+                    )}
                   </div>
-
-                  {!unlocked && (
-                    <div className="mt-1 text-[11px] text-amber-200/90">
-                      {lockReason}
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -342,7 +348,12 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                   )}
 
                   <button
-                    onClick={() => onCourseLessonChange(l.id)}
+                    onClick={() => {
+                      if (!unlocked) return;
+                      onCourseLessonChange(l.id);
+                      // close modal after selecting
+                      onClose();
+                    }}
                     disabled={!unlocked}
                     className={[
                       "rounded-md px-2 py-1 text-xs",
